@@ -1,6 +1,6 @@
 import { useStore, findLayout, findItem } from '../store'
 import { CONTROL_BY_ID, SCOPE_GROUPS, controlsInGroup, describeScope, ALL_CONTROL_IDS } from '../model/hardware'
-import { GROUP_COLORS, NOTE_COLORS, type GroupItem, type LayoutItem, type NoteItem } from '../model/types'
+import { GROUP_COLORS, NOTE_COLORS, newScreenItem, type GroupItem, type LayoutItem, type NoteItem, type ScreenItem } from '../model/types'
 import { PALETTE, ledForPaint, type PasteMode } from '../model/ops'
 import * as cmd from '../commands'
 import { MOD } from '../shortcuts'
@@ -14,6 +14,7 @@ export function Inspector() {
   if (!single) return null
   if (single.type === 'layout') return <LayoutPanel layout={single} compact />
   if (single.type === 'note') return <NotePanel note={single} />
+  if (single.type === 'screen') return <ScreenItemPanel item={single} />
   return <GroupPanel group={single} />
 }
 
@@ -101,6 +102,20 @@ function LayoutPanel({ layout, compact }: { layout: LayoutItem; compact?: boolea
           <img className="screen-thumb" src={screenDataUrl(layout.screen)} alt="Screen mockup" onClick={() => set({ dialog: { kind: 'screen', layoutId: layout.id } })} />
           <button className="btn wide" onClick={() => set({ dialog: { kind: 'screen', layoutId: layout.id } })}>
             Edit screen…
+          </button>
+          <button
+            className="btn wide"
+            title="Put a copy of this screen on the board as its own item"
+            onClick={() => {
+              const it = newScreenItem(layout.x + layout.w + 60, layout.y, `${layout.name} screen`)
+              it.screen = layout.screen
+              if (layout.screenFrames) it.screenFrames = structuredClone(layout.screenFrames)
+              commit((d) => {
+                d.items.push(it)
+              })
+            }}
+          >
+            Copy to board as a screen
           </button>
         </section>
       )}
@@ -323,6 +338,38 @@ function GroupPanel({ group }: { group: GroupItem }) {
           ))}
         </div>
         <p className="muted small">Anything inside the frame moves with it. Drag the title to move, the corner to resize.</p>
+      </section>
+    </aside>
+  )
+}
+
+function ScreenItemPanel({ item }: { item: ScreenItem }) {
+  const commit = useStore((s) => s.commit)
+  const set = useStore((s) => s.set)
+  const upd = (fn: (it: ScreenItem) => void, key?: string) =>
+    commit((d) => {
+      const it = findItem<ScreenItem>(d, item.id)
+      if (it) fn(it)
+    }, key)
+  return (
+    <aside className="inspector" onPointerDown={(e) => e.stopPropagation()}>
+      <section>
+        <h3>Screen</h3>
+        <label>
+          Name
+          <input value={item.name} onChange={(e) => upd((it) => void (it.name = e.target.value), `sname-${item.id}`)} />
+        </label>
+        <label>
+          Description
+          <textarea rows={3} value={item.description} onChange={(e) => upd((it) => void (it.description = e.target.value), `sdesc-${item.id}`)} />
+        </label>
+        <img className="screen-thumb" src={screenDataUrl(item.screen)} alt="Screen" onClick={() => set({ dialog: { kind: 'screen', layoutId: item.id } })} />
+        <button className="btn wide primary" onClick={() => set({ dialog: { kind: 'screen', layoutId: item.id } })}>
+          Edit screen… (double-click)
+        </button>
+        <p className="muted small">
+          {item.screenFrames && item.screenFrames.length > 1 ? `${item.screenFrames.length} frames; hover the screen on the board to play them. ` : ''}A standalone 128×64 screen mockup.
+        </p>
       </section>
     </aside>
   )

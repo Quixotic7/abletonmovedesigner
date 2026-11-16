@@ -20,7 +20,7 @@ const ROWS: [string, string][] = [
   ['Undo / redo', `${MOD}+Z / ${MOD}+Shift+Z`],
   ['Delete', 'Delete / Backspace (on controls: clears metadata + LED)'],
   ['Nudge', 'Arrow keys (Shift = 10 px)'],
-  ['New layout / note / group', `L / N / ${MOD}+G (frames the selection)`],
+  ['New layout / screen / note / group', `L / S / N / ${MOD}+G (frames the selection)`],
   ['Labels on/off', 'T'],
   ['Export', `${MOD}+S`],
 ]

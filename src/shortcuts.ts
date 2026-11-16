@@ -105,6 +105,10 @@ export function useShortcuts() {
           return cmd.nudge(dx, dy)
         }
         case 'Enter':
+          if (!s.activeLayoutId && s.selection.length === 1 && s.doc.items.find((i) => i.id === s.selection[0])?.type === 'screen') {
+            e.preventDefault()
+            return s.set({ dialog: { kind: 'screen', layoutId: s.selection[0] } })
+          }
           if (s.activeLayoutId && s.controlSel.length) {
             e.preventDefault()
             const ids = s.controlSel
@@ -125,6 +129,8 @@ export function useShortcuts() {
           return s.set({ tool: s.tool === 'paint' ? 'select' : 'paint' })
         case 'n':
           return cmd.addNote()
+        case 's':
+          return cmd.addScreen()
         case 'l':
           return cmd.addLayout()
         case 't':

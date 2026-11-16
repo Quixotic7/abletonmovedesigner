@@ -13,7 +13,7 @@ import {
   type Clip,
   type PasteMode,
 } from './model/ops'
-import { newDoc, newGroup, newLayout, newNote, normalizeDoc, LAYOUT_W, type BoardItem } from './model/types'
+import { newDoc, newGroup, newLayout, newNote, newScreenItem, normalizeDoc, LAYOUT_W, SCREEN_ITEM_W, SCREEN_ITEM_H, type BoardItem } from './model/types'
 import { boardRect, screenToWorld, leaveLayout } from './viewport'
 
 const S = () => useStore.getState()
@@ -56,6 +56,17 @@ export function addLayout() {
     d.items.push(l)
   })
   select([l.id])
+  S().activate(null)
+}
+
+export function addScreen() {
+  const c = viewCenter()
+  const n = S().doc.items.filter((i) => i.type === 'screen').length + 1
+  const it = newScreenItem(Math.round(c.x - SCREEN_ITEM_W / 2), Math.round(c.y - SCREEN_ITEM_H / 2), `Screen ${n}`)
+  S().commit((d) => {
+    d.items.push(it)
+  })
+  select([it.id])
   S().activate(null)
 }
 

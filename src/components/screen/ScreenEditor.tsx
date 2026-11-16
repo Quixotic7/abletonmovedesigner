@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useStore, findLayout } from '../../store'
+import { useStore, findScreenHost } from '../../store'
 import { uid, type RasterLayer, type ScreenFrame, type ScreenLayer, type TextLayer } from '../../model/types'
 import * as S from '../../lib/screen'
 import { MOD } from '../../shortcuts'
@@ -95,7 +95,7 @@ function resizedText(t: TextLayer, b: S.Rect, corner: Corner, fx: number, fy: nu
 }
 
 export function ScreenEditor({ layoutId }: { layoutId: string }) {
-  const layout = useStore((s) => findLayout(s.doc, layoutId))
+  const layout = useStore((s) => findScreenHost(s.doc, layoutId))
   const commit = useStore((s) => s.commit)
   const close = () => useStore.getState().set({ dialog: null })
 
@@ -134,7 +134,7 @@ export function ScreenEditor({ layoutId }: { layoutId: string }) {
   const saveLayers = useCallback(
     (layers: ScreenLayer[], key?: string, idx = fi) => {
       commit((d) => {
-        const l = findLayout(d, layoutId)
+        const l = findScreenHost(d, layoutId)
         if (!l) return
         const fs = (l.screenFrames ?? frames).map((f) => ({ ...f }))
         fs[idx] = { ...fs[idx], layers, image: S.flatten(layers) }
@@ -148,7 +148,7 @@ export function ScreenEditor({ layoutId }: { layoutId: string }) {
   const saveFrames = useCallback(
     (fs: ScreenFrame[]) => {
       commit((d) => {
-        const l = findLayout(d, layoutId)
+        const l = findScreenHost(d, layoutId)
         if (!l) return
         l.screenFrames = fs
         l.screen = fs[0].image
@@ -751,7 +751,7 @@ export function ScreenEditor({ layoutId }: { layoutId: string }) {
         if (!layout?.screenFrames) return updateLayer(active.id, { x: active.x + dx, y: active.y + dy })
         // Read the stored layer so fast key repeats accumulate.
         return commit((d) => {
-          const l = findLayout(d, layoutId)
+          const l = findScreenHost(d, layoutId)
           const f = l?.screenFrames?.[fi]
           const ly = f?.layers.find((x) => x.id === active.id)
           if (!l || !f || !ly) return
@@ -793,7 +793,7 @@ export function ScreenEditor({ layoutId }: { layoutId: string }) {
     <div className="modal-backdrop">
       <div className="modal screen-editor2" onContextMenu={(e) => e.preventDefault()}>
         <header>
-          <h2>Screen · {layout.name}</h2>
+          <h2>{layout.type === 'screen' ? layout.name || 'Screen' : `Screen · ${layout.name}`}</h2>
           <span className="muted small">
             128 × 64 · {cursor && cursor.x >= 0 && cursor.y >= 0 && cursor.x < S.W && cursor.y < S.H ? `x ${cursor.x}, y ${cursor.y}` : 'right-click / Alt draws the other colour'}
           </span>

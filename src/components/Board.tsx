@@ -1,9 +1,10 @@
 import { memo, useCallback, useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react'
 import { useStore, findLayout } from '../store'
-import type { BoardItem, GroupItem, LayoutItem, NoteItem } from '../model/types'
+import type { BoardItem, GroupItem, LayoutItem, NoteItem, ScreenItem } from '../model/types'
 import { CONTROL_BY_ID, CONTROLS, describeScope, shapeBounds } from '../model/hardware'
 import { intersects, ledForPaint, pickColor, withContents, type Rect } from '../model/ops'
 import { MoveSurface } from './MoveSurface'
+import { screenDataUrl } from '../lib/bitmap'
 import {
   boardRef,
   CARD_DEVICE_X,
@@ -367,6 +368,11 @@ export function Board() {
       focusLayout(layout.id)
       return
     }
+    if (id && cardEl?.getAttribute('data-item-type') === 'screen') {
+      s.select([id])
+      s.set({ dialog: { kind: 'screen', layoutId: id } })
+      return
+    }
     if (id && cardEl?.getAttribute('data-item-type') !== 'layout') {
       if (cardEl?.getAttribute('data-item-type') === 'note' || target.closest('[data-handle]')) setEditing(id)
     }
@@ -452,6 +458,7 @@ const Item = memo(function Item(p: ItemProps) {
   const common = { 'data-item-id': item.id, 'data-item-type': item.type, className: cls, style }
   if (item.type === 'layout') return <LayoutCard {...p} item={item} common={common} />
   if (item.type === 'note') return <Note {...p} item={item} common={common} />
+  if (item.type === 'screen') return <ScreenCard {...p} item={item} common={common} />
   return <Group {...p} item={item} common={common} />
 })
 
@@ -538,6 +545,35 @@ function Group({ item, common, editing, onDoneEditing, scale }: ItemProps & { it
         ) : (
           item.title || 'Group'
         )}
+      </div>
+      <div className="resize" data-resize-id={item.id} />
+    </div>
+  )
+}
+
+/** A standalone Move screen: name, the 128x64 display (frame 1, animates on hover). */
+function ScreenCard({ item, common }: ItemProps & { item: ScreenItem; common: Common }) {
+  const frames = item.screenFrames
+  const [frame, setFrame] = useState(0)
+  const [hover, setHover] = useState(false)
+  useEffect(() => {
+    if (!hover || !frames || frames.length < 2) {
+      setFrame(0)
+      return
+    }
+    const t = window.setTimeout(() => setFrame((f) => (f + 1) % frames.length), Math.max(16, frames[frame % frames.length]?.duration ?? 200))
+    return () => window.clearTimeout(t)
+  }, [hover, frame, frames])
+  const image = frames && frames.length > 1 ? frames[frame % frames.length].image : item.screen
+  return (
+    <div {...common} data-handle onPointerEnter={() => setHover(true)} onPointerLeave={() => setHover(false)}>
+      <div className="screen-card-head">
+        <span className="card-title-sm">{item.name || 'Screen'}</span>
+        {frames && frames.length > 1 && <span className="card-scope-sm">{frames.length} frames · hover to play</span>}
+      </div>
+      {item.description && <div className="screen-card-desc">{item.description}</div>}
+      <div className="screen-card-display">
+        <img src={screenDataUrl(image)} alt="" draggable={false} />
       </div>
       <div className="resize" data-resize-id={item.id} />
     </div>

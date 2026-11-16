@@ -63,6 +63,9 @@ export function Toolbar() {
           <button className="btn" onClick={cmd.addLayout} title="New layout (L)">
             + Layout
           </button>
+          <button className="btn" onClick={cmd.addScreen} title="New standalone screen (S)">
+            + Screen
+          </button>
           <button className="btn" onClick={cmd.addNote} title="New note (N)">
             + Note
           </button>

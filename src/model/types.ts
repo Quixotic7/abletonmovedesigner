@@ -144,7 +144,20 @@ export interface GroupItem extends ItemBase {
   color: string
 }
 
-export type BoardItem = LayoutItem | NoteItem | GroupItem
+/** A standalone Move screen on the board (no surrounding device). */
+export interface ScreenItem extends ItemBase {
+  type: 'screen'
+  name: string
+  description: string
+  /** Flattened first frame, same packing as LayoutItem.screen. */
+  screen: string
+  screenFrames?: ScreenFrame[]
+}
+
+/** Anything that owns an editable screen. */
+export type ScreenHost = LayoutItem | ScreenItem
+
+export type BoardItem = LayoutItem | NoteItem | GroupItem | ScreenItem
 
 export interface MoveDoc {
   format: typeof DOC_FORMAT
@@ -185,6 +198,13 @@ export function newGroup(x: number, y: number, w = 1400, h = 900, title = 'Group
   return { type: 'group', id: uid(), x, y, w, h, title, color: GROUP_COLORS[0] }
 }
 
+export const SCREEN_ITEM_W = 560
+export const SCREEN_ITEM_H = 340
+
+export function newScreenItem(x: number, y: number, name = 'Screen'): ScreenItem {
+  return { type: 'screen', id: uid(), x, y, w: SCREEN_ITEM_W, h: SCREEN_ITEM_H, name, description: '', screen: emptyScreen() }
+}
+
 export function newDoc(): MoveDoc {
   const global = newLayout(80, 120, 'Global shortcuts')
   global.description = 'Every control, default mode.'
@@ -223,6 +243,15 @@ export function normalizeDoc(raw: unknown): MoveDoc {
         description: String(it.description ?? ''),
         scope: migrateScope(Array.isArray(it.scope) ? it.scope.filter((s) => typeof s === 'string') : [...ALL_CONTROL_IDS], Number(d.version) || 1),
         controls: it.controls && typeof it.controls === 'object' ? it.controls : {},
+        screen: typeof it.screen === 'string' && it.screen.length > 0 ? it.screen : emptyScreen(),
+        ...(Array.isArray(it.screenFrames) && it.screenFrames.length ? { screenFrames: it.screenFrames } : {}),
+      })
+    } else if (it.type === 'screen') {
+      items.push({
+        ...base,
+        type: 'screen',
+        name: String(it.name ?? ''),
+        description: String(it.description ?? ''),
         screen: typeof it.screen === 'string' && it.screen.length > 0 ? it.screen : emptyScreen(),
         ...(Array.isArray(it.screenFrames) && it.screenFrames.length ? { screenFrames: it.screenFrames } : {}),
       })

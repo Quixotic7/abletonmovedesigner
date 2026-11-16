@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { produce, type Draft } from 'immer'
-import { newDoc, normalizeDoc, type BoardItem, type LayoutItem, type MoveDoc } from './model/types'
+import { newDoc, normalizeDoc, type BoardItem, type LayoutItem, type MoveDoc, type ScreenHost } from './model/types'
 
 export interface View {
   x: number
@@ -10,6 +10,7 @@ export interface View {
 
 export type Dialog =
   | { kind: 'meta'; layoutId: string; controlIds: string[] }
+  /** layoutId: a layout or a standalone screen item. */
   | { kind: 'screen'; layoutId: string }
   | { kind: 'help' }
   | null
@@ -172,6 +173,13 @@ export function findLayout(doc: MoveDoc | Draft<MoveDoc>, id: string | null): La
   if (!id) return undefined
   const it = doc.items.find((i) => i.id === id)
   return it && it.type === 'layout' ? (it as LayoutItem) : undefined
+}
+
+/** A layout or standalone screen item, by id. */
+export function findScreenHost(doc: MoveDoc | Draft<MoveDoc>, id: string | null): ScreenHost | undefined {
+  if (!id) return undefined
+  const it = doc.items.find((i) => i.id === id)
+  return it && (it.type === 'layout' || it.type === 'screen') ? (it as ScreenHost) : undefined
 }
 
 // ---- autosave ------------------------------------------------------------

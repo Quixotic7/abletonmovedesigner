@@ -39,7 +39,11 @@ Every push to `main` builds and deploys to GitHub Pages
 
 ## Using it
 
-- **Board.** Layouts, sticky notes and groups (titled frames). Drag a layout by its
+- **Board.** Layouts, standalone screens, sticky notes and groups (titled
+  frames). A **screen** (+ Screen, or S) is a 128 × 64 Move display on its own,
+  with a name and description: double-click it (or press Enter) to open the
+  screen editor, and hover it to play its animation. "Copy to board as a screen"
+  in a layout's inspector copies that layout's screen out as one. Drag a layout by its
   title bar, a note anywhere, a group by its title tab. Anything inside a group's
   frame moves with the group. Notes and groups resize from the bottom-right corner.
 - **Edit a layout in place.** Click any control on a layout to select it; that
@@ -113,7 +117,7 @@ Press `?` in the app for the full list.
 | Select all | Cmd/Ctrl+A (all controls in scope while a layout is active) |
 | Delete | Delete or Backspace (on controls: clears metadata and LED) |
 | Nudge | Arrow keys (Shift for 10 px) |
-| New layout / note / group | L / N / Cmd/Ctrl+G (frames the selection) |
+| New layout / screen / note / group | L / S / N / Cmd/Ctrl+G (frames the selection) |
 | Paint tool / select tool | B / V |
 | Labels on/off | T |
 
@@ -158,6 +162,9 @@ The export is the same JSON that gets autosaved:
         }
       ]
     },
+    { "type": "screen", "id": "…", "x": …, "y": …, "w": …, "h": …,
+      "name": "Boot animation", "description": "…",
+      "screen": "AAAA…", "screenFrames": [ … ] },   // same as a layout's screen
     { "type": "note",  "id": "…", "x": …, "y": …, "w": …, "h": …, "text": "…", "color": "#ffe58a" },
     { "type": "group", "id": "…", "x": …, "y": …, "w": …, "h": …, "title": "…", "color": "#6c8cff" }
   ]
@@ -166,6 +173,9 @@ The export is the same JSON that gets autosaved:
 
 Version 2 added the encoder LEDs; when a version 1 document is loaded, layouts
 that covered all eight encoders get their LEDs added to the scope.
+
+Version 3 added layers, text and frames for screens (`screenFrames`) and
+standalone `screen` items.
 
 Group membership is spatial, not stored: an item belongs to a group when it
 lies inside the group's frame.

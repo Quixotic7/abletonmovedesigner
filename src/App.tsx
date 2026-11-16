@@ -3,7 +3,7 @@ import { Board } from './components/Board'
 import { Toolbar } from './components/Toolbar'
 import { Inspector } from './components/Inspector'
 import { MetaDialog } from './components/MetaDialog'
-import { ScreenEditor } from './components/ScreenEditor'
+import { ScreenEditor } from './components/screen/ScreenEditor'
 import { HelpDialog } from './components/HelpDialog'
 import { useShortcuts } from './shortcuts'
 

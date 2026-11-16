@@ -10,7 +10,7 @@ const ROWS: [string, string][] = [
   ['Edit a layout', 'Click any control on it (edits in place) · double-click its title to focus'],
   ['Back to the board', 'Esc · breadcrumb · ← Back'],
   ['Control metadata', 'Double-click a control · Enter with controls selected'],
-  ['Screen mockup', 'Double-click the screen'],
+  ['Screen mockup', 'Double-click the screen: layers, text, dithers, selection and animation frames (shortcuts listed in the editor)'],
   ['Paint LEDs', 'B, then click/drag over pads, steps, buttons · Alt-click picks · Esc ends'],
   ['Copy / cut / paste', `${MOD}+C / X / V (controls or board items)`],
   ['Paste metadata only', `${MOD}+Shift+V`],

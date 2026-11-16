@@ -58,9 +58,29 @@ Every push to `main` builds and deploys to GitHub Pages
   buttons) take a brightness. Set them in the inspector, or use the **Paint** tool
   (B): pick a colour, then click or drag across controls on any layout. Alt-click
   picks up a colour. "off" switches an LED off.
-- **Screen.** Double-click the screen to open the 128 × 64 1-bit pixel editor. Its
-  tools are pencil, eraser, line, rect, filled rect, fill and text (5×7 font), plus
-  invert and clear. Left button draws white, right button or Alt draws black.
+- **Screen.** Double-click the screen to open the screen editor: a 128 × 64 1-bit
+  canvas with the same navigation as the board (wheel zoom, middle or Space drag
+  to pan, Shift+1 to fit).
+  - **Layers.** Raster layers have transparency and can be moved without losing
+    pixels. Text layers stay editable: text, font (Pixel 5×7, Pixel 3×5 or a
+    system font drawn crisp in 1-bit), size, bold, white or black, an optional box
+    behind, and position. **Convert to raster** turns text into pixels. You can
+    also hide, reorder, duplicate, merge down, flatten and rename layers.
+  - **Tools.** Box select (M), move layer (V), brush (B), eraser (E), line (L),
+    rectangle (R), ellipse (O), fill (G), dither gradient (D, linear or radial)
+    and text (T). Brushes come in round, square and spray, 1 to 16 px (`[` `]`).
+    The dither patterns (P cycles them) apply to brushes, shapes and fills. X
+    swaps white and black; right-click or Alt draws the other colour. Shift-click
+    with the brush draws a straight line, and Shift constrains lines and shapes.
+  - **Selection.** Drag a box, then drag inside it to move those pixels.
+    Painting, fills and gradients stay inside the box while it's there.
+    Cmd/Ctrl + C / X / V copies, cuts and pastes; a paste lands as a new layer.
+    The clipboard works across frames and layouts. Cmd/Ctrl+A selects all, and
+    Esc or Cmd/Ctrl+D deselects.
+  - **Frames.** For mocking up animations: duplicate or add frames, set each
+    frame's duration, reorder them, step through with `,` and `.`, play with
+    Enter, and turn on onion skin to see the previous frame in red. The layout
+    shows frame 1.
 - **Scope.** Each layout covers a set of controls. Set it with the group
   checkboxes in the inspector, or with **Pick controls…** to toggle single
   controls. Controls outside the scope are dimmed and can't be edited, and the
@@ -98,7 +118,7 @@ The export is the same JSON that gets autosaved:
 ```jsonc
 {
   "format": "ableton-move-designer",
-  "version": 2,
+  "version": 3,
   "name": "My firmware",
   "items": [                       // whiteboard, back to front
     {
@@ -115,8 +135,22 @@ The export is the same JSON that gets autosaved:
         "knob-1": { "meta": { "label": "Cutoff", "turn": "…", "touch": "…", "shiftTurn": "…" } },
         "copy":   { "led": { "brightness": 0.5 } }   // white-LED controls, 0..1
       },
-      "screen": "AAAA…"            // base64, 1024 bytes: 128x64, row-major,
+      "screen": "AAAA…",           // base64, 1024 bytes: 128x64, row-major,
                                    // 16 bytes per row, MSB = leftmost pixel
+                                   // (always the flattened frame 1)
+      "screenFrames": [            // optional; written once the screen is edited
+        {
+          "id": "…", "duration": 200,          // ms
+          "image": "AAAA…",                    // this frame flattened, same packing
+          "layers": [                          // bottom to top
+            { "type": "raster", "id": "…", "name": "Background", "visible": true,
+              "x": 0, "y": 0, "data": "…", "alpha": "…" },  // pixels + opacity, same packing
+            { "type": "text", "id": "…", "name": "Title", "visible": true, "x": 4, "y": 4,
+              "text": "Drum Rack", "font": "pixel-5x7", "size": 7,
+              "bold": false, "ink": 1, "box": false }
+          ]
+        }
+      ]
     },
     { "type": "note",  "id": "…", "x": …, "y": …, "w": …, "h": …, "text": "…", "color": "#ffe58a" },
     { "type": "group", "id": "…", "x": …, "y": …, "w": …, "h": …, "title": "…", "color": "#6c8cff" }

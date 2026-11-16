@@ -13,7 +13,7 @@ import { ALL_CONTROL_IDS } from './hardware'
 import { emptyScreen } from '../lib/bitmap'
 
 export const DOC_FORMAT = 'ableton-move-designer'
-export const DOC_VERSION = 2
+export const DOC_VERSION = 3
 
 export interface ControlMeta {
   label: string
@@ -76,8 +76,60 @@ export interface LayoutItem extends ItemBase {
   scope: string[]
   /** Keyed by control id. Absent = untouched. */
   controls: Record<string, ControlState>
-  /** 128x64 1-bit screen, 1024 bytes base64: row-major, 16 bytes per row, MSB = leftmost pixel. */
+  /**
+   * 128x64 1-bit screen, 1024 bytes base64: row-major, 16 bytes per row, MSB =
+   * leftmost pixel. Always the flattened first frame of `screenFrames`.
+   */
   screen: string
+  /** Editable screen: animation frames, each with layers. Absent = just `screen`. */
+  screenFrames?: ScreenFrame[]
+}
+
+/** A raster layer: 1-bit pixels with 1-bit transparency, drawn at an offset. */
+export interface RasterLayer {
+  id: string
+  type: 'raster'
+  name: string
+  visible: boolean
+  /** Offset of the layer's 128x64 pixel grid on the screen. */
+  x: number
+  y: number
+  /** Pixel values (1 = white), same packing as `screen`. */
+  data: string
+  /** Opaque pixels (1 = opaque), same packing. */
+  alpha: string
+}
+
+/** An editable text layer. */
+export interface TextLayer {
+  id: string
+  type: 'text'
+  name: string
+  visible: boolean
+  x: number
+  y: number
+  text: string
+  /** 'pixel-5x7', 'pixel-3x5', or a CSS font family rendered and thresholded. */
+  font: string
+  /** Cap height-ish size in pixels (pixel fonts: a multiple of their native height). */
+  size: number
+  bold: boolean
+  /** 1 = white text, 0 = black text. */
+  ink: 0 | 1
+  /** Draw a box of the opposite colour behind the text. */
+  box: boolean
+}
+
+export type ScreenLayer = RasterLayer | TextLayer
+
+export interface ScreenFrame {
+  id: string
+  /** How long the frame shows when the animation plays, in ms. */
+  duration: number
+  /** Bottom to top. */
+  layers: ScreenLayer[]
+  /** Flattened frame, same packing as `screen` (handy for firmware export). */
+  image: string
 }
 
 export interface NoteItem extends ItemBase {
@@ -172,6 +224,7 @@ export function normalizeDoc(raw: unknown): MoveDoc {
         scope: migrateScope(Array.isArray(it.scope) ? it.scope.filter((s) => typeof s === 'string') : [...ALL_CONTROL_IDS], Number(d.version) || 1),
         controls: it.controls && typeof it.controls === 'object' ? it.controls : {},
         screen: typeof it.screen === 'string' && it.screen.length > 0 ? it.screen : emptyScreen(),
+        ...(Array.isArray(it.screenFrames) && it.screenFrames.length ? { screenFrames: it.screenFrames } : {}),
       })
     } else if (it.type === 'note') {
       items.push({ ...base, type: 'note', text: String(it.text ?? ''), color: String(it.color ?? NOTE_COLORS[0]) })

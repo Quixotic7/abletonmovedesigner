@@ -160,3 +160,47 @@ input[type='color'] { width: 30px; height: 24px; padding: 0; border: 1px solid v
 .help table { border-collapse: collapse; width: 100%; }
 .help td { padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .help td:first-child { color: var(--muted); white-space: nowrap; width: 190px; }
+
+/* ---- screen editor ---- */
+.screen-editor2 { width: 94vw; height: 92vh; max-height: none; display: flex; flex-direction: column; padding: 12px 14px; overflow: hidden; }
+.screen-editor2 > header { margin-bottom: 8px; align-items: center; }
+.screen-editor2 .spacer, .se-frame-controls .spacer { flex: 1; }
+.se-body { flex: 1; min-height: 0; display: flex; gap: 10px; }
+.se-tools { display: flex; flex-direction: column; gap: 3px; width: 40px; }
+.se-tool { width: 40px; height: 36px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel-2); cursor: pointer; font-size: 17px; display: flex; align-items: center; justify-content: center; }
+.se-tool.on { background: #2f3a52; border-color: #5577bb; color: #cfe0ff; }
+.se-sep { height: 8px; }
+.se-ink { width: 40px; height: 28px; border-radius: 6px; border: 2px solid #777; cursor: pointer; }
+.se-viewport { flex: 1; min-width: 0; position: relative; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; touch-action: none; user-select: none; }
+.se-viewport canvas { position: absolute; left: 0; top: 0; display: block; }
+.se-side { width: 290px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+.se-side section { padding: 10px 12px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
+.se-side h4 { margin: 0; font-size: 12px; color: var(--muted); }
+.se-side .row { align-items: center; flex-wrap: wrap; }
+.se-side .check { display: inline-flex; gap: 5px; align-items: center; font-size: 12px; }
+.se-field { display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; color: var(--muted); }
+.se-field.inline { flex-direction: row; align-items: center; gap: 6px; }
+.se-field input, .se-field select, .se-textarea, .se-layer input { background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px; padding: 4px 6px; color: var(--text); width: 100%; }
+.se-field.inline input { width: 70px; }
+.se-textarea { font-family: ui-monospace, Menlo, monospace; resize: vertical; }
+.se-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.se-patterns { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.se-pat { padding: 2px; border: 2px solid transparent; border-radius: 5px; background: #000; cursor: pointer; }
+.se-pat img { width: 100%; display: block; image-rendering: pixelated; }
+.se-pat.on { border-color: var(--accent); }
+.se-layer-list { display: flex; flex-direction: column; gap: 2px; max-height: 240px; overflow-y: auto; }
+.se-layer { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 5px; cursor: pointer; border: 1px solid transparent; }
+.se-layer:hover { background: var(--panel-2); }
+.se-layer.on { background: #2f3a52; border-color: #3f5480; }
+.se-eye { background: none; border: 0; cursor: pointer; width: 18px; padding: 0; color: var(--muted); }
+.se-kind { width: 14px; text-align: center; color: var(--muted); font-weight: 700; }
+.se-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.se-frames { margin-top: 10px; border: 1px solid var(--line); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+.se-frame-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.se-frame-list { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.se-frame { flex: none; padding: 3px; border: 2px solid var(--line); border-radius: 6px; background: #000; cursor: pointer; position: relative; }
+.se-frame.on { border-color: var(--active); }
+.se-frame img { width: 96px; height: 48px; display: block; image-rendering: pixelated; }
+.se-frame span { position: absolute; left: 5px; top: 3px; font-size: 10px; color: #ff8a3d; text-shadow: 0 0 2px #000; }
+.se-footer { margin-top: 6px; line-height: 1.5; }
+.se-sel-note { color: #8fc2ff; margin: 0; }

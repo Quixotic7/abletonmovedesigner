@@ -10,6 +10,8 @@ The drawing matches Ableton's official *Move's Controls* diagram from the
 [Move manual](https://www.ableton.com/en/move/manual/): positions, spacing and
 proportions are measured from it (`src/model/hardware.ts`).
 
+Live: https://quixotic7.github.io/abletonmovedesigner/
+
 ## Run it
 
 Requires Node 20 or newer.
@@ -31,6 +33,9 @@ npm run preview
 There is no backend. The document autosaves to the browser's localStorage.
 **Export** (Cmd/Ctrl+S) writes the whole document to a `.movedesign.json` file, and
 **Import** loads one. Import can be undone.
+
+Every push to `main` builds and deploys to GitHub Pages
+(`.github/workflows/deploy.yml`).
 
 ## Using it
 

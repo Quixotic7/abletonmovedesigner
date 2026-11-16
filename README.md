@@ -82,6 +82,12 @@ Every push to `main` builds and deploys to GitHub Pages
     axis; Shift-click draws a straight line from the last point; Shift constrains
     lines and shapes. The fill tool fills the detected area or the whole
     selection (or screen); Shift-click does the other one.
+  - **Boxes and ellipses** have separate **Outline** and **Fill** settings: the
+    outline uses the main colour, brush size, dither and line style; the fill
+    has its own colour and dither (F toggles it). Lines and outlines can be
+    solid, dashed, dotted or a custom dash/gap; dashes run continuously round
+    corners. Dithers in boxes, ellipses and fills start at the point you click
+    (brush dithers stay locked to the screen so strokes join up).
   - **Selection.** Drag a box, then drag inside it to move those pixels.
     Painting, fills and gradients stay inside the box while it's there.
     Cmd/Ctrl + C / X / V copies, cuts and pastes; a paste lands as a new layer.

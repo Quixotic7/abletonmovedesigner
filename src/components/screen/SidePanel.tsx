@@ -79,9 +79,59 @@ export function SidePanel(p: Props) {
           </>
         )}
         {(tool === 'rect' || tool === 'ellipse') && (
-          <label className="check">
-            <input type="checkbox" checked={opts.filled} onChange={(e) => set('filled', e.target.checked)} /> Filled (F)
+          <label className="check" title="Draw the border using the colour, size, dither and line style">
+            <input type="checkbox" checked={opts.outline} onChange={(e) => set('outline', e.target.checked)} /> Outline
           </label>
+        )}
+        {(tool === 'line' || ((tool === 'rect' || tool === 'ellipse') && opts.outline)) && (
+          <>
+            <h4>Line style</h4>
+            <div className="row">
+              {(['solid', 'dashed', 'dotted', 'custom'] as const).map((ls) => (
+                <button key={ls} className={opts.lineStyle === ls ? 'btn small on' : 'btn small'} onClick={() => set('lineStyle', ls)}>
+                  {ls}
+                </button>
+              ))}
+            </div>
+            {opts.lineStyle === 'custom' && (
+              <div className="se-grid2">
+                <label className="se-field">
+                  Dash px
+                  <input type="number" min={1} max={32} value={opts.dash} onChange={(e) => set('dash', Math.max(1, Math.min(32, +e.target.value || 1)))} />
+                </label>
+                <label className="se-field">
+                  Gap px
+                  <input type="number" min={0} max={32} value={opts.gap} onChange={(e) => set('gap', Math.max(0, Math.min(32, +e.target.value || 0)))} />
+                </label>
+              </div>
+            )}
+          </>
+        )}
+        {(tool === 'rect' || tool === 'ellipse') && (
+          <>
+            <label className="check">
+              <input type="checkbox" checked={opts.fill} onChange={(e) => set('fill', e.target.checked)} /> Fill (F)
+            </label>
+            {opts.fill && (
+              <>
+                <div className="row">
+                  <button className={opts.fillInk ? 'btn small on' : 'btn small'} onClick={() => set('fillInk', 1)}>
+                    <span className="swatch" style={{ background: '#fff' }} /> White
+                  </button>
+                  <button className={!opts.fillInk ? 'btn small on' : 'btn small'} onClick={() => set('fillInk', 0)}>
+                    <span className="swatch" style={{ background: '#000' }} /> Black
+                  </button>
+                </div>
+                <div className="se-patterns">
+                  {S.PATTERNS.map((pt) => (
+                    <button key={pt.id} className={opts.fillPattern === pt.id ? 'se-pat on' : 'se-pat'} onClick={() => set('fillPattern', pt.id)} title={'Fill: ' + pt.name}>
+                      <img src={icons[pt.id]} alt={pt.name} />
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </>
         )}
         {tool === 'fill' && (
           <>
@@ -98,7 +148,7 @@ export function SidePanel(p: Props) {
         )}
         {patterned && (
           <>
-            <h4>Dither (P)</h4>
+            <h4>{tool === 'rect' || tool === 'ellipse' ? 'Outline dither (P)' : 'Dither (P)'}</h4>
             <div className="se-patterns">
               {S.PATTERNS.map((pt) => (
                 <button key={pt.id} className={opts.pattern === pt.id ? 'se-pat on' : 'se-pat'} onClick={() => set('pattern', pt.id)} title={pt.name}>

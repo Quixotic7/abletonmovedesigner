@@ -26,7 +26,16 @@ export interface ToolOpts {
   pattern: string
   size: number
   shape: S.BrushShape
-  filled: boolean
+  /** Rect / ellipse: draw the outline (with ink, size, dither and line style above). */
+  outline: boolean
+  /** Rect / ellipse: fill the inside, with its own colour and dither. */
+  fill: boolean
+  fillInk: 0 | 1
+  fillPattern: string
+  /** Lines and outlines. */
+  lineStyle: S.LineStyle
+  dash: number
+  gap: number
   radial: boolean
   /** Dither gaps take the other colour (true) or stay transparent (false). */
   opaque: boolean
@@ -50,7 +59,7 @@ type Gesture =
       /** Shift axis lock: where Shift was first held, and the locked axis once known. */
       lock: { x: number; y: number; axis: 'h' | 'v' | null } | null
     }
-  | { kind: 'shape'; layer: RasterLayer; base: S.Raster; paint: S.Paint; x0: number; y0: number; x1: number; y1: number }
+  | { kind: 'shape'; layer: RasterLayer; base: S.Raster; paint: S.Paint; alt: boolean; x0: number; y0: number; x1: number; y1: number }
   | { kind: 'gradient'; layer: RasterLayer; base: S.Raster; ink: 0 | 1; x0: number; y0: number; x1: number; y1: number }
   | { kind: 'select'; x0: number; y0: number }
   | { kind: 'float'; layer: RasterLayer; base: S.Raster; clip: S.Clip; sx: number; sy: number; dx: number; dy: number }
@@ -110,7 +119,7 @@ export function ScreenEditor({ layoutId }: { layoutId: string }) {
   const active = frame.layers.find((l) => l.id === activeId) ?? frame.layers[frame.layers.length - 1]
 
   const [tool, setTool] = useState<Tool>('brush')
-  const [opts, setOpts] = useState<ToolOpts>({ ink: 1, pattern: 'solid', size: 1, shape: 'round', filled: false, radial: false, opaque: true, fillMode: 'area' })
+  const [opts, setOpts] = useState<ToolOpts>({ ink: 1, pattern: 'solid', size: 1, shape: 'round', outline: true, fill: false, fillInk: 1, fillPattern: 'd50', lineStyle: 'solid', dash: 4, gap: 2, radial: false, opaque: true, fillMode: 'area' })
   const [sel, setSel] = useState<S.Rect | null>(null)
   const [view, setView] = useState<View>({ x: 0, y: 0, scale: 6 })
   const [playing, setPlaying] = useState(false)
@@ -463,8 +472,9 @@ export function ScreenEditor({ layoutId }: { layoutId: string }) {
     if (tool === 'fill') {
       // Shift-click does the other fill mode.
       const whole = (opts.fillMode === 'selection') !== e.shiftKey
-      if (whole) S.fillRect(base, sel ?? { x: 0, y: 0, w: S.W, h: S.H }, paint, layer.x, layer.y)
-      else S.floodFill(base, lx, ly, paint, layer.x, layer.y)
+      const fillPaint = { ...paint, origin: { x, y } } // the dither starts where you click
+      if (whole) S.fillRect(base, sel ?? { x: 0, y: 0, w: S.W, h: S.H }, fillPaint, layer.x, layer.y)
+      else S.floodFill(base, lx, ly, fillPaint, layer.x, layer.y)
       finishRaster(layer, base)
       return
     }
@@ -482,7 +492,8 @@ export function ScreenEditor({ layoutId }: { layoutId: string }) {
       gesture.current = { kind: 'gradient', layer, base, ink, x0: x, y0: y, x1: x, y1: y }
       return
     }
-    gesture.current = { kind: 'shape', layer, base, paint, x0: x, y0: y, x1: x, y1: y }
+    // Shapes start their dither pattern at the point you clicked.
+    gesture.current = { kind: 'shape', layer, base, paint: { ...paint, origin: { x, y } }, alt, x0: x, y0: y, x1: x, y1: y }
     updateShape()
   }
 
@@ -495,10 +506,22 @@ export function ScreenEditor({ layoutId }: { layoutId: string }) {
       return r
     }
     const stampAt = (x: number, y: number) => S.stamp(r, x - layer.x, y - layer.y, opts.size, opts.shape, g.paint, layer.x, layer.y)
-    const plotAt = (x: number, y: number) => S.plot(r, x - layer.x, y - layer.y, g.paint, layer.x, layer.y)
-    if (tool === 'line') S.linePoints(g.x0, g.y0, g.x1, g.y1, stampAt)
-    else if (tool === 'rect') S.rectShape(g.x0, g.y0, g.x1, g.y1, opts.filled, opts.filled ? plotAt : stampAt)
-    else if (tool === 'ellipse') S.ellipseShape(g.x0, g.y0, g.x1, g.y1, opts.filled, opts.filled ? plotAt : stampAt)
+    const [dash, gap] = S.dashOf(opts.lineStyle, opts.dash, opts.gap, opts.size)
+    if (tool === 'line') {
+      const path: [number, number][] = []
+      S.linePoints(g.x0, g.y0, g.x1, g.y1, (x, y) => path.push([x, y]))
+      S.dashed(path, dash, gap, stampAt)
+      return r
+    }
+    // Rect / ellipse: fill first, then the outline on top.
+    if (opts.fill) {
+      const fillInk: 0 | 1 = g.alt ? (opts.fillInk ? 0 : 1) : opts.fillInk
+      const fillPaint: S.Paint = { ...g.paint, ink: fillInk, pattern: S.patternById(opts.fillPattern) }
+      const plotFill = (x: number, y: number) => S.plot(r, x - layer.x, y - layer.y, fillPaint, layer.x, layer.y)
+      if (tool === 'rect') S.rectShape(g.x0, g.y0, g.x1, g.y1, true, plotFill)
+      else S.ellipseShape(g.x0, g.y0, g.x1, g.y1, true, plotFill)
+    }
+    if (opts.outline) S.dashed(tool === 'rect' ? S.rectPath(g.x0, g.y0, g.x1, g.y1) : S.ellipsePath(g.x0, g.y0, g.x1, g.y1), dash, gap, stampAt)
     return r
   }
 
@@ -767,7 +790,7 @@ export function ScreenEditor({ layoutId }: { layoutId: string }) {
       if (k === 'x') return setOpts((o) => ({ ...o, ink: o.ink ? 0 : 1 }))
       if (k === '[' || e.code === 'BracketLeft') return setOpts((o) => ({ ...o, size: Math.max(1, o.size - 1) }))
       if (k === ']' || e.code === 'BracketRight') return setOpts((o) => ({ ...o, size: Math.min(16, o.size + 1) }))
-      if (k === 'f') return setOpts((o) => ({ ...o, filled: !o.filled }))
+      if (k === 'f') return setOpts((o) => ({ ...o, fill: !o.fill }))
       if (k === 'p') {
         const i = S.PATTERNS.findIndex((p) => p.id === opts.pattern)
         const n = S.PATTERNS.length
@@ -875,7 +898,7 @@ export function ScreenEditor({ layoutId }: { layoutId: string }) {
           }}
         />
         <footer className="se-footer muted small">
-          M select · V move · B brush · E eraser · L line · R rect · O ellipse · G fill · D gradient · T text · X swap colour · [ ] size · P pattern · F filled ·
+          M select · V move · B brush · E eraser · L line · R rect · O ellipse · G fill · D gradient · T text · X swap colour · [ ] size · P pattern · F fill on/off ·
           Shift-click brush draws a line · wheel zoom · middle/Space-drag pan · {MOD}+C/X/V/A/D · , . frames · Enter play
         </footer>
       </div>

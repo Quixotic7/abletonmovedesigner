@@ -120,6 +120,8 @@ export interface Paint {
   clip?: Rect | null
   /** Where the pattern is off, paint the opposite colour instead of leaving it alone. */
   opaque?: boolean
+  /** Screen point the pattern starts from (default: the screen's top-left). */
+  origin?: { x: number; y: number }
 }
 
 /** Set one pixel in layer-local coordinates, respecting pattern and clip (in screen coords via ox/oy). */
@@ -129,7 +131,7 @@ export function plot(r: Raster, x: number, y: number, p: Paint, ox = 0, oy = 0) 
   const sy = y + oy
   if (p.clip && (sx < p.clip.x || sy < p.clip.y || sx >= p.clip.x + p.clip.w || sy >= p.clip.y + p.clip.h)) return
   const i = y * W + x
-  if (!p.pattern.on(sx, sy)) {
+  if (!p.pattern.on(sx - (p.origin?.x ?? 0), sy - (p.origin?.y ?? 0))) {
     if (!p.opaque || p.ink === -1) return
     r.alpha[i] = 1
     r.data[i] = p.ink ? 0 : 1
@@ -191,6 +193,50 @@ export function rectShape(x0: number, y0: number, x1: number, y1: number, filled
   const [ay, by] = y0 < y1 ? [y0, y1] : [y1, y0]
   for (let y = ay; y <= by; y++)
     for (let x = ax; x <= bx; x++) if (filled || y === ay || y === by || x === ax || x === bx) fn(x, y)
+}
+
+/** Outline of a rectangle as one continuous clockwise path (so dashes run round the corners). */
+export function rectPath(x0: number, y0: number, x1: number, y1: number): [number, number][] {
+  const [ax, bx] = x0 < x1 ? [x0, x1] : [x1, x0]
+  const [ay, by] = y0 < y1 ? [y0, y1] : [y1, y0]
+  if (ax === bx || ay === by) {
+    const pts: [number, number][] = []
+    linePoints(ax, ay, bx, by, (x, y) => pts.push([x, y]))
+    return pts
+  }
+  const pts: [number, number][] = []
+  for (let x = ax; x < bx; x++) pts.push([x, ay])
+  for (let y = ay; y < by; y++) pts.push([bx, y])
+  for (let x = bx; x > ax; x--) pts.push([x, by])
+  for (let y = by; y > ay; y--) pts.push([ax, y])
+  return pts
+}
+
+/** Outline of an ellipse as a path ordered by angle. */
+export function ellipsePath(x0: number, y0: number, x1: number, y1: number): [number, number][] {
+  const pts: [number, number][] = []
+  ellipseShape(x0, y0, x1, y1, false, (x, y) => pts.push([x, y]))
+  const cx = (x0 + x1) / 2
+  const cy = (y0 + y1) / 2
+  return pts.sort((a, b) => Math.atan2(a[1] - cy, a[0] - cx) - Math.atan2(b[1] - cy, b[0] - cx))
+}
+
+export type LineStyle = 'solid' | 'dashed' | 'dotted' | 'custom'
+
+/** Dash and gap lengths for a line style (gap 0 = solid). */
+export function dashOf(style: LineStyle, dash: number, gap: number, size: number): [number, number] {
+  if (style === 'solid') return [1, 0]
+  if (style === 'dotted') return [1, Math.max(1, size)]
+  if (style === 'dashed') return [Math.max(3, size * 3), Math.max(2, size * 2)]
+  return [Math.max(1, dash), Math.max(0, gap)]
+}
+
+/** Call fn for the points of `path` that fall on a dash. */
+export function dashed(path: [number, number][], dash: number, gap: number, fn: (x: number, y: number) => void) {
+  const period = dash + gap
+  path.forEach(([x, y], i) => {
+    if (!gap || i % period < dash) fn(x, y)
+  })
 }
 
 export function ellipseShape(x0: number, y0: number, x1: number, y1: number, filled: boolean, fn: (x: number, y: number) => void) {

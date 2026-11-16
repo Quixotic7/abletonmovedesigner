@@ -13,7 +13,7 @@ import { ALL_CONTROL_IDS } from './hardware'
 import { emptyScreen } from '../lib/bitmap'
 
 export const DOC_FORMAT = 'ableton-move-designer'
-export const DOC_VERSION = 1
+export const DOC_VERSION = 2
 
 export interface ControlMeta {
   label: string
@@ -140,6 +140,19 @@ export function newDoc(): MoveDoc {
   return { format: DOC_FORMAT, version: DOC_VERSION, name: 'Untitled', items: [global, note] }
 }
 
+/**
+ * Version 2 added the encoder LEDs (`knobled-N`). Older layouts that covered
+ * all eight encoders get the LEDs added to their scope.
+ */
+function migrateScope(scope: string[], version: number): string[] {
+  if (version >= 2) return scope
+  const has = new Set(scope)
+  const knobs = Array.from({ length: 8 }, (_, i) => `knob-${i + 1}`)
+  if (!knobs.every((k) => has.has(k))) return scope
+  knobs.forEach((_, i) => has.add(`knobled-${i + 1}`))
+  return ALL_CONTROL_IDS.filter((id) => has.has(id))
+}
+
 /** Validate / normalise an imported or stored document. Throws on garbage. */
 export function normalizeDoc(raw: unknown): MoveDoc {
   if (!raw || typeof raw !== 'object') throw new Error('Not a JSON object')
@@ -156,7 +169,7 @@ export function normalizeDoc(raw: unknown): MoveDoc {
         type: 'layout',
         name: String(it.name ?? ''),
         description: String(it.description ?? ''),
-        scope: Array.isArray(it.scope) ? it.scope.filter((s) => typeof s === 'string') : [...ALL_CONTROL_IDS],
+        scope: migrateScope(Array.isArray(it.scope) ? it.scope.filter((s) => typeof s === 'string') : [...ALL_CONTROL_IDS], Number(d.version) || 1),
         controls: it.controls && typeof it.controls === 'object' ? it.controls : {},
         screen: typeof it.screen === 'string' && it.screen.length > 0 ? it.screen : emptyScreen(),
       })

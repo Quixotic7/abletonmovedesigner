@@ -17,6 +17,7 @@ export type ControlKind =
   | 'track'
   | 'button'
   | 'stepicon'
+  | 'knobled'
   | 'screen'
 
 /** What kind of light a control has. */
@@ -32,6 +33,7 @@ export type ScopeGroupId =
   | 'stepicons'
   | 'tracks'
   | 'knobs'
+  | 'knobleds'
   | 'volume'
   | 'wheel'
   | 'screen'
@@ -77,6 +79,7 @@ export const SCOPE_GROUPS: { id: ScopeGroupId; name: string }[] = [
   { id: 'stepicons', name: 'Step icons' },
   { id: 'tracks', name: 'Track buttons' },
   { id: 'knobs', name: 'Encoders 1-8' },
+  { id: 'knobleds', name: 'Encoder LEDs' },
   { id: 'volume', name: 'Volume' },
   { id: 'wheel', name: 'Jog wheel' },
   { id: 'screen', name: 'Screen' },
@@ -127,6 +130,17 @@ function build(): ControlDef[] {
       shape: circle(227 + i * 85.2, 46, 19),
       led: 'none',
       midi: { cc: 71 + i, touchNote: i },
+    })
+  }
+  // The small LEDs under each encoder.
+  for (let i = 0; i < 8; i++) {
+    out.push({
+      id: `knobled-${i + 1}`,
+      kind: 'knobled',
+      name: `Encoder ${i + 1} LED`,
+      group: 'knobleds',
+      shape: circle(227 + i * 85.2, 84, 5),
+      led: 'rgb',
     })
   }
   out.push({

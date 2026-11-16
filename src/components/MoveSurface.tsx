@@ -31,10 +31,7 @@ function MoveSurfaceImpl({ layout, selected, showLabels, scopeEdit }: Props) {
       data-layout-body={layout.id}
     >
       <rect x={0} y={0} width={DEVICE_W} height={DEVICE_H} rx={14} fill="#26272b" stroke="#45464c" strokeWidth={2} />
-      {/* decorative: encoder index dots and the microphone hole */}
-      {Array.from({ length: 8 }, (_, i) => (
-        <circle key={i} cx={227 + i * 85.2} cy={84} r={3} fill="none" stroke={PRINT} strokeWidth={1} />
-      ))}
+      {/* decorative: the microphone hole */}
       <circle cx={891} cy={45} r={2.5} fill="#111" stroke={PRINT} strokeWidth={0.8} />
       {CONTROLS.map((def) => (
         <Control
@@ -143,6 +140,16 @@ const Control = memo(function Control({ def, st, inScope, selected, showLabels, 
         </>
       )
       labelPos = def.kind === 'volume' ? { x: s.cx, y: s.cy + s.r + 14 } : { x: s.cx, y: 101 }
+      break
+    }
+    case 'knobled': {
+      if (s.type !== 'circle') break
+      body = (
+        <>
+          {lit && <circle cx={s.cx} cy={s.cy} r={s.r + 3} fill={lit} opacity={0.25} />}
+          <circle cx={s.cx} cy={s.cy} r={3.2} fill={lit ?? 'none'} stroke={lit ?? PRINT} strokeWidth={1} />
+        </>
+      )
       break
     }
     case 'wheel': {

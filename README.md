@@ -52,7 +52,8 @@ Every push to `main` builds and deploys to GitHub Pages
   Touch and Shift + turn. With several controls selected, you edit them all at once.
   An orange dot marks controls that have metadata, and hovering a control shows it
   all.
-- **LEDs.** RGB controls (pads, steps, track buttons, Play, Record) take a colour.
+- **LEDs.** RGB controls (pads, steps, track buttons, the LEDs under the encoders,
+  Play, Record) take a colour.
   White-LED controls (the other buttons and the printed icons under the step
   buttons) take a brightness. Set them in the inspector, or use the **Paint** tool
   (B): pick a colour, then click or drag across controls on any layout. Alt-click
@@ -97,7 +98,7 @@ The export is the same JSON that gets autosaved:
 ```jsonc
 {
   "format": "ableton-move-designer",
-  "version": 1,
+  "version": 2,
   "name": "My firmware",
   "items": [                       // whiteboard, back to front
     {
@@ -123,6 +124,9 @@ The export is the same JSON that gets autosaved:
 }
 ```
 
+Version 2 added the encoder LEDs; when a version 1 document is loaded, layouts
+that covered all eight encoders get their LEDs added to the scope.
+
 Group membership is spatial, not stored: an item belongs to a group when it
 lies inside the group's frame.
 
@@ -137,6 +141,7 @@ inspector shows it for the selected control.
 | `step-1` … `step-16` | notes 16–31 |
 | `stepicon-N` (the lightable printed icons under steps 1-3, 5-11, 14-16) | (no MIDI listed here) |
 | `knob-1` … `knob-8` | CC 71–78, touch notes 0–7 |
+| `knobled-1` … `knobled-8` (the LEDs under the encoders) | (no MIDI listed here) |
 | `volume` | CC 79, touch note 8 |
 | `wheel` | CC 14, click CC 3, touch note 9 |
 | `track-1` … `track-4`, top to bottom | CC 43, 42, 41, 40 |

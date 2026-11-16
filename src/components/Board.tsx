@@ -52,6 +52,17 @@ export function Board() {
     boardRef.el = ref.current
   }, [])
 
+  // A drag must never outlive the button press, wherever the release happens.
+  useEffect(() => {
+    const end = () => gesture.current && onPointerUpRef.current()
+    window.addEventListener('pointerup', end)
+    window.addEventListener('blur', end)
+    return () => {
+      window.removeEventListener('pointerup', end)
+      window.removeEventListener('blur', end)
+    }
+  }, [])
+
   // Space-to-pan.
   useEffect(() => {
     const isTyping = (e: KeyboardEvent) => {
@@ -76,7 +87,7 @@ export function Board() {
     }
   }, [])
 
-  // Wheel: zoom toward cursor; pinch (ctrlKey) zooms; horizontal / two-axis trackpad scroll pans.
+  // Wheel: zoom toward cursor; pinch (ctrlKey) zooms; sideways scroll (or Shift) pans.
   useEffect(() => {
     const el = ref.current!
     const onWheel = (e: WheelEvent) => {
@@ -86,8 +97,10 @@ export function Board() {
       const dx = e.deltaX * unit
       const dy = e.deltaY * unit
       if (e.ctrlKey || e.metaKey) {
-        zoomAt(e.clientX, e.clientY, Math.exp(-dy * 0.01))
-      } else if (dx !== 0 || e.shiftKey) {
+        zoomAt(e.clientX, e.clientY, Math.exp(-Math.max(-60, Math.min(60, dy)) * 0.01))
+      } else if (Math.abs(dx) > Math.abs(dy) || e.shiftKey) {
+        // Mostly-sideways scrolling pans. Mice and Magic Mice often send a little
+        // sideways movement with a vertical scroll; that still zooms.
         const v = useStore.getState().view
         useStore.getState().setView({ ...v, x: v.x - (e.shiftKey && !dx ? dy : dx), y: v.y - (e.shiftKey && !dx ? 0 : dy) })
       } else {
@@ -239,6 +252,11 @@ export function Board() {
   const onPointerMove = (e: RPointerEvent) => {
     const g = gesture.current
     if (!g) return
+    if (e.buttons === 0 && e.pointerType === 'mouse') {
+      // The button was released somewhere we never heard about: finish the gesture.
+      onPointerUp()
+      return
+    }
     const s = useStore.getState()
     switch (g.kind) {
       case 'pan':
@@ -314,6 +332,7 @@ export function Board() {
 
   const onPointerUp = () => {
     const g = gesture.current
+    if (!g) return
     gesture.current = null
     setMarquee(null)
     setPanning(false)
@@ -323,6 +342,9 @@ export function Board() {
       s.activate(g.click.layoutId, [g.click.controlId])
     }
   }
+
+  const onPointerUpRef = useRef(onPointerUp)
+  onPointerUpRef.current = onPointerUp
 
   const onDoubleClick = (e: React.MouseEvent) => {
     const s = useStore.getState()
@@ -385,6 +407,7 @@ export function Board() {
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
+      onLostPointerCapture={onPointerUp}
       onDoubleClick={onDoubleClick}
       onAuxClick={(e) => e.button === 1 && e.preventDefault()}
       onContextMenu={(e) => e.preventDefault()}

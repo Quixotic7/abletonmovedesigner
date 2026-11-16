@@ -79,7 +79,7 @@ function loadView(): View {
     const raw = localStorage.getItem(VIEW_KEY)
     if (raw) {
       const v = JSON.parse(raw)
-      if (typeof v.x === 'number' && typeof v.scale === 'number') return v
+      if ([v.x, v.y, v.scale].every(Number.isFinite) && v.scale > 0) return v
     }
   } catch {
     /* ignore */
@@ -144,7 +144,10 @@ export const useStore = create<State & Actions>()((setState, get) => ({
     setState({ selection: [], activeLayoutId: null, controlSel: [] })
   },
   set: (p) => setState(p),
-  setView: (view) => setState({ view }),
+  setView: (view) => {
+    // A NaN or infinite view would make every later zoom/pan a no-op.
+    if ([view.x, view.y, view.scale].every(Number.isFinite) && view.scale > 0) setState({ view })
+  },
   select: (ids) => setState({ selection: ids }),
   activate: (layoutId, controls = []) =>
     setState({ activeLayoutId: layoutId, controlSel: layoutId ? controls : [], scopeEdit: layoutId ? get().scopeEdit : false }),
@@ -202,3 +205,7 @@ window.addEventListener('beforeunload', () => {
 })
 
 if (import.meta.env.DEV) (window as unknown as { __amd: typeof useStore }).__amd = useStore
+
+// In dev, a hot update to this module (or the model it imports) would create a
+// second store next to the old one. Reload the page instead.
+if (import.meta.hot) import.meta.hot.accept(() => location.reload())

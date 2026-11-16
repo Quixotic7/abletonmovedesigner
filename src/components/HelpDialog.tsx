@@ -3,7 +3,7 @@ import { useStore } from '../store'
 import { MOD } from '../shortcuts'
 
 const ROWS: [string, string][] = [
-  ['Pan', 'Middle-mouse drag · Space + drag · trackpad two-finger scroll'],
+  ['Pan', 'Middle-mouse drag · Space + drag · Shift + scroll · sideways scroll'],
   ['Zoom', `Scroll wheel (toward cursor) · pinch · ${MOD} + = / −`],
   ['Zoom to fit / selection', 'Shift+1 / Shift+2 · click the % button'],
   ['Select', 'Click · Shift-click to add · drag a box on empty space'],

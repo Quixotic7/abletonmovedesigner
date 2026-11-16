@@ -78,7 +78,7 @@ Press `?` in the app for the full list.
 
 | | |
 |---|---|
-| Pan | Middle-mouse drag, Space + drag, trackpad two-finger scroll |
+| Pan | Middle-mouse drag, Space + drag, Shift + scroll, sideways scroll (vertical scrolling always zooms) |
 | Zoom | Scroll wheel (zooms toward the cursor), pinch, Cmd/Ctrl + = / − |
 | Fit all / fit selection | Shift+1 / Shift+2 |
 | Select | Click, Shift-click to add, drag a box from empty space (on the board, or on the active layout's body for controls) |

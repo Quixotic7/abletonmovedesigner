@@ -118,6 +118,8 @@ export interface Paint {
   pattern: Pattern
   /** Clip to this rect (selection). */
   clip?: Rect | null
+  /** Where the pattern is off, paint the opposite colour instead of leaving it alone. */
+  opaque?: boolean
 }
 
 /** Set one pixel in layer-local coordinates, respecting pattern and clip (in screen coords via ox/oy). */
@@ -126,8 +128,13 @@ export function plot(r: Raster, x: number, y: number, p: Paint, ox = 0, oy = 0) 
   const sx = x + ox
   const sy = y + oy
   if (p.clip && (sx < p.clip.x || sy < p.clip.y || sx >= p.clip.x + p.clip.w || sy >= p.clip.y + p.clip.h)) return
-  if (!p.pattern.on(sx, sy)) return
   const i = y * W + x
+  if (!p.pattern.on(sx, sy)) {
+    if (!p.opaque || p.ink === -1) return
+    r.alpha[i] = 1
+    r.data[i] = p.ink ? 0 : 1
+    return
+  }
   if (p.ink === -1) {
     r.alpha[i] = 0
     r.data[i] = 0
@@ -199,6 +206,11 @@ export function ellipseShape(x0: number, y0: number, x1: number, y1: number, fil
       if (!inside(x, y)) continue
       if (filled || !inside(x - 1, y) || !inside(x + 1, y) || !inside(x, y - 1) || !inside(x, y + 1)) fn(x, y)
     }
+}
+
+/** Fill a whole screen-space rect (the selection, or the screen). */
+export function fillRect(r: Raster, area: Rect, p: Paint, ox = 0, oy = 0) {
+  for (let sy = area.y; sy < area.y + area.h; sy++) for (let sx = area.x; sx < area.x + area.w; sx++) plot(r, sx - ox, sy - oy, p, ox, oy)
 }
 
 /** Flood fill of the region of identical (alpha, data) state around (x, y), layer-local. */

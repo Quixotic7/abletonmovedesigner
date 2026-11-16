@@ -28,6 +28,10 @@ export interface ToolOpts {
   shape: S.BrushShape
   filled: boolean
   radial: boolean
+  /** Dither gaps take the other colour (true) or stay transparent (false). */
+  opaque: boolean
+  /** Fill tool: the detected area, or the whole selection (or screen). */
+  fillMode: 'area' | 'selection'
 }
 
 type Clipboard = { kind: 'pixels'; clip: S.Clip } | { kind: 'layer'; layer: ScreenLayer }
@@ -36,17 +40,58 @@ let clipboard: Clipboard | null = null
 
 type Gesture =
   | { kind: 'pan'; sx: number; sy: number; vx: number; vy: number }
-  | { kind: 'paint'; layer: RasterLayer; r: S.Raster; paint: S.Paint; lx: number; ly: number }
+  | {
+      kind: 'paint'
+      layer: RasterLayer
+      r: S.Raster
+      paint: S.Paint
+      lx: number
+      ly: number
+      /** Shift axis lock: where Shift was first held, and the locked axis once known. */
+      lock: { x: number; y: number; axis: 'h' | 'v' | null } | null
+    }
   | { kind: 'shape'; layer: RasterLayer; base: S.Raster; paint: S.Paint; x0: number; y0: number; x1: number; y1: number }
   | { kind: 'gradient'; layer: RasterLayer; base: S.Raster; ink: 0 | 1; x0: number; y0: number; x1: number; y1: number }
   | { kind: 'select'; x0: number; y0: number }
   | { kind: 'float'; layer: RasterLayer; base: S.Raster; clip: S.Clip; sx: number; sy: number; dx: number; dy: number }
   | { kind: 'moveLayer'; id: string; ox: number; oy: number; sx: number; sy: number; moved: boolean }
+  | { kind: 'textResize'; layer: TextLayer; corner: Corner; b: S.Rect }
+
+type Corner = 'tl' | 'tr' | 'bl' | 'br'
+const TEXT_HANDLE_TOOLS: Tool[] = ['text', 'move', 'select']
 
 interface View {
   x: number
   y: number
   scale: number
+}
+
+function handlePoints(b: S.Rect, v: { x: number; y: number; scale: number }): [number, number, Corner][] {
+  const x0 = v.x + b.x * v.scale
+  const y0 = v.y + b.y * v.scale
+  const x1 = v.x + (b.x + b.w) * v.scale
+  const y1 = v.y + (b.y + b.h) * v.scale
+  return [
+    [x0, y0, 'tl'],
+    [x1, y0, 'tr'],
+    [x0, y1, 'bl'],
+    [x1, y1, 'br'],
+  ]
+}
+
+/** Text layer resized by dragging `corner` to the fractional pixel (fx, fy); the opposite corner stays put. */
+function resizedText(t: TextLayer, b: S.Rect, corner: Corner, fx: number, fy: number): Partial<TextLayer> {
+  const left = corner === 'tl' || corner === 'bl'
+  const top = corner === 'tl' || corner === 'tr'
+  const w = Math.max(1, left ? b.x + b.w - fx : fx - b.x)
+  const h = Math.max(1, top ? b.y + b.h - fy : fy - b.y)
+  const ratio = Math.max(w / b.w, h / b.h)
+  const def = S.fontDef(t.font)
+  const size = def.native ? def.native * Math.max(1, Math.round((t.size * ratio) / def.native)) : Math.max(5, Math.min(64, Math.round(t.size * ratio)))
+  const nb = S.layerBounds({ ...t, size })
+  const x = t.x + (left ? b.x + b.w - (nb.x + nb.w) : 0)
+  const y = t.y + (top ? b.y + b.h - (nb.y + nb.h) : 0)
+  return { size, x, y }
 }
 
 export function ScreenEditor({ layoutId }: { layoutId: string }) {
@@ -65,7 +110,7 @@ export function ScreenEditor({ layoutId }: { layoutId: string }) {
   const active = frame.layers.find((l) => l.id === activeId) ?? frame.layers[frame.layers.length - 1]
 
   const [tool, setTool] = useState<Tool>('brush')
-  const [opts, setOpts] = useState<ToolOpts>({ ink: 1, pattern: 'solid', size: 1, shape: 'round', filled: false, radial: false })
+  const [opts, setOpts] = useState<ToolOpts>({ ink: 1, pattern: 'solid', size: 1, shape: 'round', filled: false, radial: false, opaque: true, fillMode: 'area' })
   const [sel, setSel] = useState<S.Rect | null>(null)
   const [view, setView] = useState<View>({ x: 0, y: 0, scale: 6 })
   const [playing, setPlaying] = useState(false)
@@ -74,11 +119,12 @@ export function ScreenEditor({ layoutId }: { layoutId: string }) {
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null)
   const [spaceHeld, setSpaceHeld] = useState(false)
   const [focusText, setFocusText] = useState(0)
+  const [hoverCursor, setHoverCursor] = useState<string | null>(null)
 
   const vpRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const gesture = useRef<Gesture | null>(null)
-  const preview = useRef<{ overrides?: Map<string, S.Raster>; layerPos?: Map<string, { x: number; y: number }>; sel?: S.Rect | null }>({})
+  const preview = useRef<{ overrides?: Map<string, S.Raster>; patch?: Map<string, Partial<TextLayer>>; sel?: S.Rect | null }>({})
   const lastPoint = useRef<{ x: number; y: number } | null>(null)
   const fitted = useRef(false)
 
@@ -146,7 +192,7 @@ export function ScreenEditor({ layoutId }: { layoutId: string }) {
 
     const p = preview.current
     let layers = frame.layers
-    if (p.layerPos) layers = layers.map((l) => (p.layerPos!.has(l.id) ? { ...l, ...p.layerPos!.get(l.id)! } : l))
+    if (p.patch) layers = layers.map((l) => (p.patch!.has(l.id) ? ({ ...l, ...p.patch!.get(l.id)! } as ScreenLayer) : l))
     const px = S.composite(layers, p.overrides)
     const prev = onion && fi > 0 ? S.composite(frames[fi - 1].layers) : null
 
@@ -206,9 +252,21 @@ export function ScreenEditor({ layoutId }: { layoutId: string }) {
     }
     // Active layer outline (text layers and moved rasters).
     if (active && active.visible && (active.type === 'text' || active.x || active.y || tool === 'move')) {
-      const pos = p.layerPos?.get(active.id)
-      const b = S.layerBounds(pos ? ({ ...active, ...pos } as ScreenLayer) : active)
-      if (b.w && b.h) rectOut(b, '#ff8a3d', [4, 3])
+      const pt = p.patch?.get(active.id)
+      const b = S.layerBounds(pt ? ({ ...active, ...pt } as ScreenLayer) : active)
+      if (b.w && b.h) {
+        rectOut(b, '#ff8a3d', [4, 3])
+        if (active.type === 'text' && TEXT_HANDLE_TOOLS.includes(tool)) {
+          // Corner handles for WYSIWYG resizing.
+          ctx.fillStyle = '#ff8a3d'
+          ctx.strokeStyle = '#000'
+          ctx.lineWidth = 1
+          for (const [hx, hy] of handlePoints(b, view)) {
+            ctx.fillRect(hx - 4, hy - 4, 8, 8)
+            ctx.strokeRect(hx - 4.5, hy - 4.5, 9, 9)
+          }
+        }
+      }
     }
     const s = p.sel !== undefined ? p.sel : sel
     if (s && s.w && s.h) {
@@ -334,6 +392,21 @@ export function ScreenEditor({ layoutId }: { layoutId: string }) {
     const ink: 0 | 1 = alt ? (opts.ink ? 0 : 1) : opts.ink
     const pattern = S.patternById(opts.pattern)
 
+    // Active text layer: corner handles resize, dragging inside the box moves it.
+    if (active?.type === 'text' && active.visible && TEXT_HANDLE_TOOLS.includes(tool) && e.button === 0) {
+      const b = S.layerBounds(active)
+      const r = vpRef.current!.getBoundingClientRect()
+      const hit = handlePoints(b, view).find(([hx, hy]) => Math.abs(e.clientX - r.left - hx) <= 7 && Math.abs(e.clientY - r.top - hy) <= 7)
+      if (hit) {
+        gesture.current = { kind: 'textResize', layer: active, corner: hit[2], b }
+        return
+      }
+      if (S.inRect(b, x, y) && !(tool === 'select' && S.inRect(sel, x, y))) {
+        gesture.current = { kind: 'moveLayer', id: active.id, ox: active.x, oy: active.y, sx: x, sy: y, moved: false }
+        return
+      }
+    }
+
     switch (tool) {
       case 'move': {
         const hit = layerAt(x, y) ?? active
@@ -359,6 +432,12 @@ export function ScreenEditor({ layoutId }: { layoutId: string }) {
         return
       }
       case 'select': {
+        const textHit = !S.inRect(sel, x, y) ? layerAt(x, y) : undefined
+        if (textHit?.type === 'text') {
+          setActiveId(textHit.id)
+          gesture.current = { kind: 'moveLayer', id: textHit.id, ox: textHit.x, oy: textHit.y, sx: x, sy: y, moved: false }
+          return
+        }
         if (sel && S.inRect(sel, x, y) && active?.type === 'raster') {
           const base = S.rasterOf(active)
           const clip = S.copyRect(active, base, sel)
@@ -379,10 +458,13 @@ export function ScreenEditor({ layoutId }: { layoutId: string }) {
     if (layers !== frame.layers) setActiveId(layer.id)
     const lx = x - layer.x
     const ly = y - layer.y
-    const paint: S.Paint = { ink: tool === 'eraser' ? -1 : ink, pattern: tool === 'eraser' ? S.PATTERNS[0] : pattern, clip: sel }
+    const paint: S.Paint = { ink: tool === 'eraser' ? -1 : ink, pattern: tool === 'eraser' ? S.PATTERNS[0] : pattern, clip: sel, opaque: opts.opaque }
     const base = S.rasterOf(layer)
     if (tool === 'fill') {
-      S.floodFill(base, lx, ly, paint, layer.x, layer.y)
+      // Shift-click does the other fill mode.
+      const whole = (opts.fillMode === 'selection') !== e.shiftKey
+      if (whole) S.fillRect(base, sel ?? { x: 0, y: 0, w: S.W, h: S.H }, paint, layer.x, layer.y)
+      else S.floodFill(base, lx, ly, paint, layer.x, layer.y)
       finishRaster(layer, base)
       return
     }
@@ -390,7 +472,7 @@ export function ScreenEditor({ layoutId }: { layoutId: string }) {
       const last = lastPoint.current
       if (e.shiftKey && last) S.linePoints(last.x - layer.x, last.y - layer.y, lx, ly, (px, py) => S.stamp(base, px, py, opts.size, opts.shape, paint, layer.x, layer.y))
       else S.stamp(base, lx, ly, opts.size, opts.shape, paint, layer.x, layer.y)
-      gesture.current = { kind: 'paint', layer, r: base, paint, lx, ly }
+      gesture.current = { kind: 'paint', layer, r: base, paint, lx, ly, lock: null }
       preview.current = { overrides: new Map([[layer.id, base]]) }
       lastPoint.current = { x, y }
       draw()
@@ -437,20 +519,49 @@ export function ScreenEditor({ layoutId }: { layoutId: string }) {
     const { x, y } = toPixel(e.clientX, e.clientY)
     setCursor((c) => (c && c.x === x && c.y === y ? c : { x, y }))
     const g = gesture.current
-    if (!g) return
+    if (!g) {
+      // Cursor feedback over the active text layer's box and handles.
+      let hc: string | null = null
+      if (active?.type === 'text' && active.visible && TEXT_HANDLE_TOOLS.includes(tool)) {
+        const b = S.layerBounds(active)
+        const r = vpRef.current!.getBoundingClientRect()
+        const hit = handlePoints(b, view).find(([hx, hy]) => Math.abs(e.clientX - r.left - hx) <= 7 && Math.abs(e.clientY - r.top - hy) <= 7)
+        if (hit) hc = hit[2] === 'tl' || hit[2] === 'br' ? 'nwse-resize' : 'nesw-resize'
+        else if (S.inRect(b, x, y)) hc = 'move'
+      }
+      if (hc !== hoverCursor) setHoverCursor(hc)
+      return
+    }
     if (e.buttons === 0 && e.pointerType === 'mouse') return onPointerUp()
     switch (g.kind) {
       case 'pan':
         setView((v) => ({ ...v, x: g.vx + e.clientX - g.sx, y: g.vy + e.clientY - g.sy }))
         return
       case 'paint': {
-        const lx = x - g.layer.x
-        const ly = y - g.layer.y
+        let lx = x - g.layer.x
+        let ly = y - g.layer.y
+        if (e.shiftKey) {
+          // Hold Shift to lock the stroke to the axis you move along first.
+          g.lock ??= { x: g.lx, y: g.ly, axis: null }
+          if (!g.lock.axis && Math.max(Math.abs(lx - g.lock.x), Math.abs(ly - g.lock.y)) >= 2)
+            g.lock.axis = Math.abs(lx - g.lock.x) >= Math.abs(ly - g.lock.y) ? 'h' : 'v'
+          if (!g.lock.axis) return
+          if (g.lock.axis === 'h') ly = g.lock.y
+          else lx = g.lock.x
+        } else g.lock = null
         if (lx === g.lx && ly === g.ly) return
         S.linePoints(g.lx, g.ly, lx, ly, (px, py) => S.stamp(g.r, px, py, opts.size, opts.shape, g.paint, g.layer.x, g.layer.y))
         g.lx = lx
         g.ly = ly
-        lastPoint.current = { x, y }
+        lastPoint.current = { x: lx + g.layer.x, y: ly + g.layer.y }
+        draw()
+        return
+      }
+      case 'textResize': {
+        const r = vpRef.current!.getBoundingClientRect()
+        const fx = (e.clientX - r.left - view.x) / view.scale
+        const fy = (e.clientY - r.top - view.y) / view.scale
+        preview.current = { patch: new Map([[g.layer.id, resizedText(g.layer, g.b, g.corner, fx, fy)]]) }
         draw()
         return
       }
@@ -500,7 +611,7 @@ export function ScreenEditor({ layoutId }: { layoutId: string }) {
         const dy = y - g.sy
         if (!g.moved && !dx && !dy) return
         g.moved = true
-        preview.current = { layerPos: new Map([[g.id, { x: g.ox + dx, y: g.oy + dy }]]) }
+        preview.current = { patch: new Map([[g.id, { x: g.ox + dx, y: g.oy + dy }]]) }
         draw()
         return
       }
@@ -534,8 +645,13 @@ export function ScreenEditor({ layoutId }: { layoutId: string }) {
         break
       }
       case 'moveLayer': {
-        const pos = p.layerPos?.get(g.id)
+        const pos = p.patch?.get(g.id)
         if (g.moved && pos) updateLayer(g.id, pos)
+        break
+      }
+      case 'textResize': {
+        const pt = p.patch?.get(g.layer.id)
+        if (pt && (pt.size !== g.layer.size || pt.x !== g.layer.x || pt.y !== g.layer.y)) updateLayer(g.layer.id, pt)
         break
       }
     }
@@ -671,7 +787,7 @@ export function ScreenEditor({ layoutId }: { layoutId: string }) {
   })
 
   if (!layout) return null
-  const cursorStyle = gesture.current?.kind === 'pan' ? 'grabbing' : spaceHeld ? 'grab' : tool === 'move' ? 'move' : tool === 'text' ? 'text' : 'crosshair'
+  const cursorStyle = gesture.current?.kind === 'pan' ? 'grabbing' : spaceHeld ? 'grab' : hoverCursor ? hoverCursor : tool === 'move' ? 'move' : tool === 'text' ? 'text' : 'crosshair'
 
   return (
     <div className="modal-backdrop">

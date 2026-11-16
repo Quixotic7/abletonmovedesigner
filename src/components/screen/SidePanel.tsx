@@ -62,6 +62,7 @@ export function SidePanel(p: Props) {
             <span className="muted small">X swaps</span>
           </div>
         )}
+        {(tool === 'brush' || tool === 'eraser') && <p className="muted small">Hold Shift while drawing to lock to one axis. Shift-click draws a line from the last point.</p>}
         {brushy && (
           <>
             <label className="se-field">
@@ -82,6 +83,19 @@ export function SidePanel(p: Props) {
             <input type="checkbox" checked={opts.filled} onChange={(e) => set('filled', e.target.checked)} /> Filled (F)
           </label>
         )}
+        {tool === 'fill' && (
+          <>
+            <div className="row">
+              <button className={opts.fillMode === 'area' ? 'btn small on' : 'btn small'} onClick={() => set('fillMode', 'area')} title="Fill the connected area you click">
+                Fill area
+              </button>
+              <button className={opts.fillMode === 'selection' ? 'btn small on' : 'btn small'} onClick={() => set('fillMode', 'selection')} title="Fill the whole selection (or the whole screen)">
+                Fill selection
+              </button>
+            </div>
+            <p className="muted small">Shift-click does the other one.</p>
+          </>
+        )}
         {patterned && (
           <>
             <h4>Dither (P)</h4>
@@ -92,6 +106,9 @@ export function SidePanel(p: Props) {
                 </button>
               ))}
             </div>
+            <label className="check" title="Off: the gaps in a dither take the other colour, covering what's underneath">
+              <input type="checkbox" checked={!opts.opaque} onChange={(e) => set('opaque', !e.target.checked)} /> Transparent gaps
+            </label>
           </>
         )}
         {tool === 'gradient' && (
@@ -103,8 +120,8 @@ export function SidePanel(p: Props) {
           </>
         )}
         {tool === 'select' && <p className="muted small">Drag a box. Drag inside it to move those pixels. Brushes and fills stay inside the box.</p>}
-        {tool === 'move' && <p className="muted small">Drag to move a layer (picks the layer under the cursor). Arrow keys nudge.</p>}
-        {tool === 'text' && <p className="muted small">Click to add a text layer, or click text to select and drag it.</p>}
+        {tool === 'move' && <p className="muted small">Drag to move a layer (picks the layer under the cursor). Arrow keys nudge. Text: drag a corner to resize.</p>}
+        {tool === 'text' && <p className="muted small">Click to add a text layer. Drag a text box to move it; drag a corner to change the font size.</p>}
         {p.sel && (
           <p className="se-sel-note small">
             Selection {p.sel.w}×{p.sel.h} at {p.sel.x},{p.sel.y}. Painting, fills and gradients stay inside it. Esc or {'⌘'}/Ctrl+D clears it.

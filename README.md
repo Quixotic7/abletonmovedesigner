@@ -64,14 +64,20 @@ Every push to `main` builds and deploys to GitHub Pages
   - **Layers.** Raster layers have transparency and can be moved without losing
     pixels. Text layers stay editable: text, font (Pixel 5×7, Pixel 3×5 or a
     system font drawn crisp in 1-bit), size, bold, white or black, an optional box
-    behind, and position. **Convert to raster** turns text into pixels. You can
+    behind, and position. With the text, move or select tool, drag a text box to
+    move it and drag a corner handle to change the font size (the opposite
+    corner stays put). **Convert to raster** turns text into pixels. You can
     also hide, reorder, duplicate, merge down, flatten and rename layers.
   - **Tools.** Box select (M), move layer (V), brush (B), eraser (E), line (L),
     rectangle (R), ellipse (O), fill (G), dither gradient (D, linear or radial)
     and text (T). Brushes come in round, square and spray, 1 to 16 px (`[` `]`).
-    The dither patterns (P cycles them) apply to brushes, shapes and fills. X
-    swaps white and black; right-click or Alt draws the other colour. Shift-click
-    with the brush draws a straight line, and Shift constrains lines and shapes.
+    The dither patterns (P cycles them) apply to brushes, shapes and fills; their
+    gaps take the other colour, covering what's underneath, unless you tick
+    **Transparent gaps**. X swaps white and black; right-click or Alt draws the
+    other colour. Hold Shift while drawing to lock the brush or eraser to one
+    axis; Shift-click draws a straight line from the last point; Shift constrains
+    lines and shapes. The fill tool fills the detected area or the whole
+    selection (or screen); Shift-click does the other one.
   - **Selection.** Drag a box, then drag inside it to move those pixels.
     Painting, fills and gradients stay inside the box while it's there.
     Cmd/Ctrl + C / X / V copies, cuts and pastes; a paste lands as a new layer.

@@ -53,6 +53,8 @@ export interface MidiInfo {
   touchNote?: number
   /** CC sent when the wheel is clicked. */
   clickCc?: number
+  /** CC that sets this light when it has no input of its own (encoder LEDs, step icons). */
+  ledCc?: number
 }
 
 export interface ControlDef {
@@ -141,6 +143,7 @@ function build(): ControlDef[] {
       group: 'knobleds',
       shape: circle(227 + i * 85.2, 84, 5),
       led: 'rgb',
+      midi: { ledCc: 71 + i },
     })
   }
   out.push({
@@ -245,6 +248,7 @@ function build(): ControlDef[] {
       group: 'stepicons',
       shape: circle(206 + i * 42.67, 448, 9),
       led: 'white',
+      midi: { ledCc: 16 + i },
       shiftLabel: sh[0],
       shiftIcon: sh[1],
     })

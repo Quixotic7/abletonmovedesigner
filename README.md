@@ -133,15 +133,18 @@ lies inside the group's frame.
 ### Control ids and MIDI
 
 Every control's hardware MIDI mapping is in `src/model/hardware.ts`, and the
-inspector shows it for the selected control.
+inspector shows it for the selected control. The LED numbers for the encoder LEDs
+and step icons come from the community reference
+[Addressing Move's UI over MIDI](https://github.com/charlesvestal/extending-move/wiki/Addressing-Move's-UI-over-MIDI):
+pads, steps and encoder LEDs take a colour value, other lights a brightness.
 
 | Control ids | MIDI |
 |---|---|
 | `pad-<row>-<col>`, row 1 = top, col 1 = left | notes 68–99, bottom-left first |
 | `step-1` … `step-16` | notes 16–31 |
-| `stepicon-N` (the lightable printed icons under steps 1-3, 5-11, 14-16) | (no MIDI listed here) |
+| `stepicon-N` (the lightable printed icons under steps 1-3, 5-11, 14-16) | LED CC 16–31 (CC 15 + step number) |
 | `knob-1` … `knob-8` | CC 71–78, touch notes 0–7 |
-| `knobled-1` … `knobled-8` (the LEDs under the encoders) | (no MIDI listed here) |
+| `knobled-1` … `knobled-8` (the LEDs under the encoders) | LED CC 71–78 (the value picks the colour) |
 | `volume` | CC 79, touch note 8 |
 | `wheel` | CC 14, click CC 3, touch note 9 |
 | `track-1` … `track-4`, top to bottom | CC 43, 42, 41, 40 |

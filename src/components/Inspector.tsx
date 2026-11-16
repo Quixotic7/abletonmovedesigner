@@ -244,6 +244,7 @@ export function midiText(m: NonNullable<(typeof CONTROL_BY_ID)[string]['midi']>)
   if (m.cc !== undefined) parts.push(`CC ${m.cc}`)
   if (m.touchNote !== undefined) parts.push(`touch note ${m.touchNote}`)
   if (m.clickCc !== undefined) parts.push(`click CC ${m.clickCc}`)
+  if (m.ledCc !== undefined) parts.push(`LED CC ${m.ledCc}`)
   return parts.join(' · ')
 }
 

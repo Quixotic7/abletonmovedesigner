@@ -6,6 +6,7 @@ import * as cmd from '../commands'
 import { MOD } from '../shortcuts'
 import { focusLayout } from '../viewport'
 import { screenDataUrl } from '../lib/bitmap'
+import { MetaFields } from './MetaFields'
 
 export function Inspector() {
   const active = useStore((s) => findLayout(s.doc, s.activeLayoutId))
@@ -32,6 +33,7 @@ function LayoutPanel({ layout, compact }: { layout: LayoutItem; compact?: boolea
 
   return (
     <aside className="inspector" onPointerDown={(e) => e.stopPropagation()}>
+      {!compact && controlSel.length > 0 && <SelectionSection layout={layout} ids={controlSel} />}
       <section>
         <h3>Layout</h3>
         <label>
@@ -94,7 +96,7 @@ function LayoutPanel({ layout, compact }: { layout: LayoutItem; compact?: boolea
         <p className="muted small">Controls outside the scope are dimmed and can't be edited in this layout.</p>
       </section>
 
-      {!compact && <SelectionSection layout={layout} ids={controlSel} />}
+      {!compact && controlSel.length === 0 && <SelectionSection layout={layout} ids={controlSel} />}
 
       {!compact && scope.has('screen') && (
         <section>
@@ -156,24 +158,21 @@ function SelectionSection({ layout, ids }: { layout: LayoutItem; ids: string[] }
       for (const def of defs) if (def.led === 'white' && l.scope.includes(def.id)) (l.controls[def.id] ??= {}).led = { brightness: b }
     })
   const doPaste = (mode: PasteMode) => cmd.paste(cmd.getClip(), mode)
-  const m = st?.meta ?? {}
 
   return (
     <section>
       <h3>
         {defs.length === 1 ? first.name : `${defs.length} controls`}
-        {defs.length === 1 && m.label && <span className="muted"> “{m.label}”</span>}
       </h3>
-      {defs.length === 1 && (
+      {ids.every((id) => id === 'screen') ? (
+        <button className="btn wide primary" onClick={() => set({ dialog: { kind: 'screen', layoutId: layout.id } })}>
+          Edit screen…
+        </button>
+      ) : (
+        <MetaFields layout={layout} ids={ids} />
+      )}
+      {defs.length === 1 && (first.midi || first.shiftLabel) && (
         <dl className="meta-summary">
-          {(['function', 'click', 'hold', 'doubleClick', 'shift', 'turn', 'touch', 'shiftTurn', 'description'] as const)
-            .filter((k) => m[k])
-            .map((k) => (
-              <div key={k}>
-                <dt>{FIELD_SHORT[k]}</dt>
-                <dd>{m[k]}</dd>
-              </div>
-            ))}
           {first.midi && (
             <div>
               <dt>MIDI</dt>
@@ -188,9 +187,11 @@ function SelectionSection({ layout, ids }: { layout: LayoutItem; ids: string[] }
           )}
         </dl>
       )}
-      <button className="btn wide primary" onClick={() => set({ dialog: ids.length === 1 && ids[0] === 'screen' ? { kind: 'screen', layoutId: layout.id } : { kind: 'meta', layoutId: layout.id, controlIds: ids } })}>
-        Edit metadata… <span className="kbd">Enter</span>
-      </button>
+      {!ids.every((id) => id === 'screen') && (
+        <button className="btn small link-btn" onClick={() => set({ dialog: { kind: 'meta', layoutId: layout.id, controlIds: ids } })} title="Bigger editor (double-click a control, or Enter)">
+          Open in dialog
+        </button>
+      )}
 
       {rgb && (
         <>
@@ -239,18 +240,6 @@ function SelectionSection({ layout, ids }: { layout: LayoutItem; ids: string[] }
       </div>
     </section>
   )
-}
-
-const FIELD_SHORT: Record<string, string> = {
-  function: 'Function',
-  click: 'Click',
-  hold: 'Hold',
-  doubleClick: 'Double',
-  shift: 'Shift',
-  turn: 'Turn',
-  touch: 'Touch',
-  shiftTurn: 'Shift+turn',
-  description: 'Notes',
 }
 
 export function midiText(m: NonNullable<(typeof CONTROL_BY_ID)[string]['midi']>) {

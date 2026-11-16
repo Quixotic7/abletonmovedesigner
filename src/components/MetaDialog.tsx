@@ -1,26 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useStore, findLayout } from '../store'
 import { CONTROL_BY_ID, readingOrder } from '../model/hardware'
+import { ALL_META_FIELDS, fieldsFor } from './MetaFields'
 import type { ControlMeta } from '../model/types'
 import { midiText } from './Inspector'
 import { MOD } from '../shortcuts'
-
-type Field = { key: keyof ControlMeta; label: string; hint: string; multiline?: boolean }
-
-const BASE: Field[] = [
-  { key: 'label', label: 'Label', hint: 'Short name shown on the layout' },
-  { key: 'function', label: 'Function', hint: 'What it does in this layout' },
-  { key: 'click', label: 'Quick click', hint: 'Tap / short press' },
-  { key: 'hold', label: 'Hold', hint: 'Press and hold' },
-  { key: 'doubleClick', label: 'Double-click', hint: 'Double press' },
-  { key: 'shift', label: 'Shift + press', hint: 'With Shift held' },
-]
-const ENCODER: Field[] = [
-  { key: 'turn', label: 'Turn', hint: 'Turning the encoder' },
-  { key: 'touch', label: 'Touch', hint: 'Touching without turning' },
-  { key: 'shiftTurn', label: 'Shift + turn', hint: 'Turning with Shift held' },
-]
-const DESC: Field = { key: 'description', label: 'Description', hint: 'Notes, details, edge cases', multiline: true }
 
 const MIXED = '\u0000mixed'
 
@@ -30,13 +14,12 @@ export function MetaDialog({ layoutId, controlIds }: { layoutId: string; control
   const close = () => useStore.getState().set({ dialog: null })
   const ids = useMemo(() => readingOrder(controlIds.filter((id) => layout?.scope.includes(id))), [controlIds, layout])
   const defs = ids.map((id) => CONTROL_BY_ID[id])
-  const encoderish = defs.some((d) => d.kind === 'knob' || d.kind === 'volume' || d.kind === 'wheel')
-  const fields = [BASE[0], BASE[1], ...(encoderish ? ENCODER : []), ...BASE.slice(2), DESC]
+  const fields = fieldsFor(ids)
 
   // Initial values: common value across the selection, or MIXED.
   const [values, setValues] = useState<Record<string, string>>(() => {
     const out: Record<string, string> = {}
-    for (const f of [...BASE, ...ENCODER, DESC]) {
+    for (const f of ALL_META_FIELDS) {
       const vals = new Set(ids.map((id) => layout?.controls[id]?.meta?.[f.key] ?? ''))
       out[f.key] = vals.size === 1 ? [...vals][0] : MIXED
     }

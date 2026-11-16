@@ -50,8 +50,9 @@ Every push to `main` builds and deploys to GitHub Pages
   layout becomes the active one, outlined in orange, and the inspector opens on the
   right. Double-click a layout's title to zoom to it. Esc, the breadcrumb or
   **← Back** returns you to the board and restores your previous view.
-- **Control metadata.** Double-click a control, or press Enter with controls
-  selected. The fields are Label, Function, Quick click, Hold, Double-click,
+- **Control metadata.** Select a control and edit its fields right in the
+  inspector on the right (they save as you type), or double-click it / press
+  Enter for a larger dialog. The fields are Label, Function, Quick click, Hold, Double-click,
   Shift + press and Description. Encoders, Volume and the jog wheel also get Turn,
   Touch and Shift + turn. With several controls selected, you edit them all at once.
   An orange dot marks controls that have metadata, and hovering a control shows it

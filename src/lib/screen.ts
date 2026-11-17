@@ -5,6 +5,7 @@
 import { decode, encode, SCREEN_H, SCREEN_W } from './bitmap'
 import { FONT_5X7 } from './font'
 import { FONT_3X5 } from './font3x5'
+import { EG_FONT_B, EG_FONT_S, egGlyphIndex } from './fontEG'
 import { uid, type RasterLayer, type ScreenFrame, type ScreenLayer, type TextLayer } from '../model/types'
 
 export const W = SCREEN_W
@@ -315,6 +316,8 @@ export interface FontDef {
 export const FONTS: FontDef[] = [
   { id: 'pixel-5x7', name: 'Pixel 5x7', native: 7 },
   { id: 'pixel-3x5', name: 'Pixel 3x5', native: 5 },
+  { id: 'eg-big', name: 'EvilGenius Big (8x8)', native: 7 },
+  { id: 'eg-small', name: 'EvilGenius Small (4x6)', native: 5 },
   { id: 'Helvetica, Arial, sans-serif', name: 'Sans (Helvetica)', native: 0 },
   { id: 'Georgia, serif', name: 'Serif (Georgia)', native: 0 },
   { id: 'Menlo, Consolas, monospace', name: 'Mono (Menlo)', native: 0 },
@@ -343,18 +346,47 @@ export function textMask(t: TextLayer): Mask {
   return m
 }
 
+/**
+ * A pixel font: glyph size, advance (a character's cell, spacing included) and line pitch at 1x, and whether a
+ * glyph pixel is lit. The EvilGenius fonts advance a whole cell (8 or 4 pixels), as the app's mono_text does, so a
+ * text layer lands on exactly the pixels the app draws.
+ */
+interface PixelFont {
+  gw: number
+  gh: number
+  adv: number
+  line: number
+  on: (ch: string, gx: number, gy: number) => boolean
+}
+
+const egOn = (tab: number[][]) => (ch: string, gx: number, gy: number) => {
+  const gi = egGlyphIndex(ch)
+  return gi >= 0 && !!((tab[gi][gy] >> (7 - gx)) & 1)
+}
+
+const PIXEL_FONTS: Record<string, PixelFont> = {
+  'pixel-5x7': {
+    gw: 5, gh: 8, adv: 6, line: 9, // 5x7 has a descender row
+    on: (ch, gx, gy) => !!(((FONT_5X7[ch.charCodeAt(0) - 32] ?? FONT_5X7[31])[gx] >> gy) & 1),
+  },
+  'pixel-3x5': {
+    gw: 3, gh: 5, adv: 4, line: 6,
+    on: (ch, gx, gy) => !!(((FONT_3X5[ch.charCodeAt(0) - 32] ?? FONT_3X5[31])[gy] >> (2 - gx)) & 1),
+  },
+  'eg-big': { gw: 8, gh: 7, adv: 8, line: 10, on: egOn(EG_FONT_B) },
+  'eg-small': { gw: 4, gh: 5, adv: 4, line: 6, on: egOn(EG_FONT_S) },
+}
+
 function pixelTextMask(t: TextLayer): Mask {
   const def = fontDef(t.font)
   const k = Math.max(1, Math.round(t.size / def.native))
-  const small = def.id === 'pixel-3x5'
-  const gw = small ? 3 : 5
-  const gh = small ? 5 : 8 // 5x7 has a descender row
-  const adv = gw + 1
-  const lineH = (small ? 6 : 9) * k
+  const f = PIXEL_FONTS[def.id] ?? PIXEL_FONTS['pixel-5x7']
+  const { gw, gh, adv } = f
+  const lineH = f.line * k
   const lines = t.text.split('\n')
-  const cols = Math.max(1, ...lines.map((l) => l.length))
+  const cols = Math.max(1, ...lines.map((l) => [...l].length))
   const bold = t.bold ? 1 : 0
-  const w = Math.max(1, (cols * adv - 1) * k + bold)
+  const w = Math.max(1, (cols * adv - (adv - gw === 0 ? 0 : 1)) * k + bold)
   const h = Math.max(1, (lines.length - 1) * lineH + gh * k)
   const px = new Uint8Array(w * h)
   const set = (x: number, y: number) => {
@@ -362,20 +394,11 @@ function pixelTextMask(t: TextLayer): Mask {
   }
   lines.forEach((line, li) => {
     ;[...line].forEach((ch, ci) => {
-      const code = ch.charCodeAt(0)
       const ox = ci * adv * k
       const oy = li * lineH
       for (let gy = 0; gy < gh; gy++)
         for (let gx = 0; gx < gw; gx++) {
-          let on: boolean
-          if (small) {
-            const g = FONT_3X5[code - 32] ?? FONT_3X5[31]
-            on = !!((g[gy] >> (2 - gx)) & 1)
-          } else {
-            const g = FONT_5X7[code - 32] ?? FONT_5X7[31]
-            on = !!((g[gx] >> gy) & 1)
-          }
-          if (!on) continue
+          if (!f.on(ch, gx, gy)) continue
           for (let yy = 0; yy < k; yy++)
             for (let xx = 0; xx <= k - 1 + bold; xx++) set(ox + gx * k + xx, oy + gy * k + yy)
         }

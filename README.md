@@ -67,8 +67,10 @@ Every push to `main` builds and deploys to GitHub Pages
   canvas with the same navigation as the board (wheel zoom, middle or Space drag
   to pan, Shift+1 to fit).
   - **Layers.** Raster layers have transparency and can be moved without losing
-    pixels. Text layers stay editable: text, font (Pixel 5×7, Pixel 3×5 or a
-    system font drawn crisp in 1-bit), size, bold, white or black, an optional box
+    pixels. Text layers stay editable: text, font (Pixel 5×7, Pixel 3×5, the
+    EvilGenius firmware's own two fonts, Big 8×8 and Small 4×6, or a system font
+    drawn crisp in 1-bit), size (pixel fonts in whole multiples: 1×, 2×, 3× ...),
+    bold, white or black, an optional box
     behind, and position. With the text, move or select tool, drag a text box to
     move it and drag a corner handle to change the font size (the opposite
     corner stays put). **Convert to raster** turns text into pixels. You can
@@ -163,8 +165,9 @@ The export is the same JSON that gets autosaved:
             { "type": "raster", "id": "…", "name": "Background", "visible": true,
               "x": 0, "y": 0, "data": "…", "alpha": "…" },  // pixels + opacity, same packing
             { "type": "text", "id": "…", "name": "Title", "visible": true, "x": 4, "y": 4,
-              "text": "Drum Rack", "font": "pixel-5x7", "size": 7,
-              "bold": false, "ink": 1, "box": false }
+              "text": "Drum Rack", "font": "pixel-5x7", "size": 7,   // pixel fonts: "pixel-5x7",
+              "bold": false, "ink": 1, "box": false }                // "pixel-3x5", "eg-big", "eg-small";
+                                                                     // size = its height x a whole multiple
           ]
         }
       ]
@@ -218,3 +221,4 @@ pads, steps and encoder LEDs take a colour value, other lights a brightness.
 - `src/components/MoveSurface.tsx`: the SVG drawing of the Move
 - `src/components/Inspector.tsx`, `MetaDialog.tsx`, `ScreenEditor.tsx`: editors
 - `src/lib/bitmap.ts`, `src/lib/font.ts`: 1-bit bitmap ops and the 5×7 font
+- `src/lib/fontEG.ts`: the EvilGenius firmware's two fonts, generated from its `core/ui/px_art.h`

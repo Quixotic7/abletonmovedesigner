@@ -95,10 +95,14 @@ export const SCOPE_GROUPS: { id: ScopeGroupId; name: string }[] = [
 
 const circle = (cx: number, cy: number, r: number): Shape => ({ type: 'circle', cx, cy, r })
 
+// The icon printed under each of the 16 step buttons: [label, glyph]. Ableton's
+// manual gives no function for the icons under steps 4, 12 and 13, so those are
+// named by their shape. (Schwung opens its Tools menu from the step 13 star.)
 const STEP_SHIFT: Record<number, [string, string]> = {
   0: ['Set Overview', 'page'],
   1: ['Setup', 'gear'],
   2: ['Workflow Settings', 'nodes'],
+  3: ['Cylinder, undocumented', 'cylinder'],
   4: ['Tempo', 'clock'],
   5: ['Metronome', 'metro'],
   6: ['Groove', 'wave'],
@@ -106,6 +110,8 @@ const STEP_SHIFT: Record<number, [string, string]> = {
   8: ['Keys & Scales', 'note'],
   9: ['Full Velocity', 'bars'],
   10: ['Arp / Repeat', 'arp'],
+  11: ['Merge, undocumented', 'merge'],
+  12: ['Star, undocumented', 'star'],
   13: ['New Clip', 'newclip'],
   14: ['Double Loop', 'double'],
   15: ['Quantize', 'quant'],
@@ -238,9 +244,9 @@ function build(): ControlDef[] {
     })
   }
   // The printed Shift-function icons under the step buttons light up (white).
+  // All 16 steps have one.
   for (let i = 0; i < 16; i++) {
     const sh = STEP_SHIFT[i]
-    if (!sh) continue
     out.push({
       id: `stepicon-${i + 1}`,
       kind: 'stepicon',

@@ -137,7 +137,7 @@ The export is the same JSON that gets autosaved:
 ```jsonc
 {
   "format": "ableton-move-designer",
-  "version": 3,
+  "version": 4,
   "name": "My firmware",
   "items": [                       // whiteboard, back to front
     {
@@ -187,6 +187,11 @@ that covered all eight encoders get their LEDs added to the scope.
 Version 3 added layers, text and frames for screens (`screenFrames`) and
 standalone `screen` items.
 
+Version 4 added the printed icons under steps 4, 12 and 13 (`stepicon-4`,
+`stepicon-12`, `stepicon-13`), which Ableton's manual does not mention. When an
+older document is loaded, layouts that covered all 13 earlier step icons get
+the three new ones added to the scope.
+
 Group membership is spatial, not stored: an item belongs to a group when it
 lies inside the group's frame.
 
@@ -202,7 +207,7 @@ pads, steps and encoder LEDs take a colour value, other lights a brightness.
 |---|---|
 | `pad-<row>-<col>`, row 1 = top, col 1 = left | notes 68–99, bottom-left first |
 | `step-1` … `step-16` | notes 16–31 |
-| `stepicon-N` (the lightable printed icons under steps 1-3, 5-11, 14-16) | LED CC 16–31 (CC 15 + step number) |
+| `stepicon-1` … `stepicon-16` (the lightable printed icons under the steps; those under steps 4, 12 and 13 have no documented function) | LED CC 16–31 (CC 15 + step number) |
 | `knob-1` … `knob-8` | CC 71–78, touch notes 0–7 |
 | `knobled-1` … `knobled-8` (the LEDs under the encoders) | LED CC 71–78 (the value picks the colour) |
 | `volume` | CC 79, touch note 8 |

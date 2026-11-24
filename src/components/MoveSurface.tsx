@@ -348,6 +348,17 @@ function shiftGlyph(icon: string, ink = PRINT): ReactNode {
           <path d="M0 -3 Q2 0 0 3 M3 -4.5 Q6 0 3 4.5" />
         </g>
       )
+    case 'cylinder':
+      return (
+        <g {...p}>
+          <ellipse cy={-3.4} rx={3.8} ry={1.7} />
+          <path d="M-3.8 -3.4 V5 M3.8 -3.4 V5" />
+        </g>
+      )
+    case 'merge':
+      return <path {...p} d="M-5.5 -4.5 H-1.5 L5.5 -1.2 M-5.5 -1.5 H-1.5 L5.5 -0.4 M-5.5 1.5 H-1.5 L5.5 0.4 M-5.5 4.5 H-1.5 L5.5 1.2" />
+    case 'star':
+      return <path {...p} d="M0 -6 Q0.9 -0.9 6 0 Q0.9 0.9 0 6 Q-0.9 0.9 -6 0 Q-0.9 -0.9 0 -6 Z" />
     case 'newclip':
       return <path {...p} d="M-6 -3 H-2 M-4 -5 V-1 M-2 1 H5 V5 H-2 Z" />
     case 'double':

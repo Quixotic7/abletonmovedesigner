@@ -13,7 +13,7 @@ import { ALL_CONTROL_IDS } from './hardware'
 import { emptyScreen } from '../lib/bitmap'
 
 export const DOC_FORMAT = 'ableton-move-designer'
-export const DOC_VERSION = 3
+export const DOC_VERSION = 4
 
 export interface ControlMeta {
   label: string
@@ -212,17 +212,35 @@ export function newDoc(): MoveDoc {
   return { format: DOC_FORMAT, version: DOC_VERSION, name: 'Untitled', items: [global, note] }
 }
 
+/** The step icons the model had before version 4 (it lacked steps 4, 12 and 13). */
+const STEP_ICONS_V3 = [1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 14, 15, 16].map((n) => `stepicon-${n}`)
+const STEP_ICONS_V4 = [4, 12, 13].map((n) => `stepicon-${n}`)
+
 /**
- * Version 2 added the encoder LEDs (`knobled-N`). Older layouts that covered
- * all eight encoders get the LEDs added to their scope.
+ * Controls added to the hardware model after a document was saved join a
+ * layout's scope when the layout covered the whole set they belong to, so
+ * "all encoders" or "all step icons" still means all of them.
+ *
+ * Version 2 added the encoder LEDs (`knobled-N`): layouts that covered all
+ * eight encoders get the LEDs.
+ * Version 4 added the step icons under steps 4, 12 and 13: layouts that
+ * covered all 13 earlier step icons get the three new ones.
  */
 function migrateScope(scope: string[], version: number): string[] {
-  if (version >= 2) return scope
   const has = new Set(scope)
-  const knobs = Array.from({ length: 8 }, (_, i) => `knob-${i + 1}`)
-  if (!knobs.every((k) => has.has(k))) return scope
-  knobs.forEach((_, i) => has.add(`knobled-${i + 1}`))
-  return ALL_CONTROL_IDS.filter((id) => has.has(id))
+  let grew = false
+  if (version < 2) {
+    const knobs = Array.from({ length: 8 }, (_, i) => `knob-${i + 1}`)
+    if (knobs.every((k) => has.has(k))) {
+      knobs.forEach((_, i) => has.add(`knobled-${i + 1}`))
+      grew = true
+    }
+  }
+  if (version < 4 && STEP_ICONS_V3.every((id) => has.has(id))) {
+    STEP_ICONS_V4.forEach((id) => has.add(id))
+    grew = true
+  }
+  return grew ? ALL_CONTROL_IDS.filter((id) => has.has(id)) : scope
 }
 
 /** Validate / normalise an imported or stored document. Throws on garbage. */
